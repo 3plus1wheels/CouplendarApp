@@ -24,9 +24,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		E6A1F1422F88797600399A40 /* ccc.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ccc.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		E6A1F14F2F88797700399A40 /* cccTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = cccTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		E6A1F1592F88797700399A40 /* cccUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = cccUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E6A1F1422F88797600399A40 /* CouplendarApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CouplendarApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E6A1F14F2F88797700399A40 /* CouplendarAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CouplendarAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E6A1F1592F88797700399A40 /* CouplendarAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CouplendarAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -43,6 +43,36 @@
 		E6A1F15C2F88797700399A40 /* cccUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = cccUITests;
+			sourceTree = "<group>";
+		};
+		E6A1F16E2F89A15500399A40 /* App */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = App;
+			sourceTree = "<group>";
+		};
+		E6A1F1702F89A1BE00399A40 /* DesignSystem */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		E6A1F1732F89A1EC00399A40 /* Models */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Models;
+			sourceTree = "<group>";
+		};
+		E6A1F1752F89A1FA00399A40 /* Views */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Views;
+			sourceTree = "<group>";
+		};
+		E6A1F1762F89A20100399A40 /* ViewModels */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		E6A1F1782F89A24A00399A40 /* PreviewData */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PreviewData;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -75,6 +105,12 @@
 		E6A1F1392F88797600399A40 = {
 			isa = PBXGroup;
 			children = (
+				E6A1F1782F89A24A00399A40 /* PreviewData */,
+				E6A1F1762F89A20100399A40 /* ViewModels */,
+				E6A1F1752F89A1FA00399A40 /* Views */,
+				E6A1F1732F89A1EC00399A40 /* Models */,
+				E6A1F1702F89A1BE00399A40 /* DesignSystem */,
+				E6A1F16E2F89A15500399A40 /* App */,
 				E6A1F1442F88797600399A40 /* ccc */,
 				E6A1F1522F88797700399A40 /* cccTests */,
 				E6A1F15C2F88797700399A40 /* cccUITests */,
@@ -85,9 +121,9 @@
 		E6A1F1432F88797600399A40 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				E6A1F1422F88797600399A40 /* ccc.app */,
-				E6A1F14F2F88797700399A40 /* cccTests.xctest */,
-				E6A1F1592F88797700399A40 /* cccUITests.xctest */,
+				E6A1F1422F88797600399A40 /* CouplendarApp.app */,
+				E6A1F14F2F88797700399A40 /* CouplendarAppTests.xctest */,
+				E6A1F1592F88797700399A40 /* CouplendarAppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,9 +131,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		E6A1F1412F88797600399A40 /* ccc */ = {
+		E6A1F1412F88797600399A40 /* CouplendarApp */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = E6A1F1632F88797700399A40 /* Build configuration list for PBXNativeTarget "ccc" */;
+			buildConfigurationList = E6A1F1632F88797700399A40 /* Build configuration list for PBXNativeTarget "CouplendarApp" */;
 			buildPhases = (
 				E6A1F13E2F88797600399A40 /* Sources */,
 				E6A1F13F2F88797600399A40 /* Frameworks */,
@@ -109,17 +145,23 @@
 			);
 			fileSystemSynchronizedGroups = (
 				E6A1F1442F88797600399A40 /* ccc */,
+				E6A1F16E2F89A15500399A40 /* App */,
+				E6A1F1702F89A1BE00399A40 /* DesignSystem */,
+				E6A1F1732F89A1EC00399A40 /* Models */,
+				E6A1F1752F89A1FA00399A40 /* Views */,
+				E6A1F1762F89A20100399A40 /* ViewModels */,
+				E6A1F1782F89A24A00399A40 /* PreviewData */,
 			);
-			name = ccc;
+			name = CouplendarApp;
 			packageProductDependencies = (
 			);
 			productName = ccc;
-			productReference = E6A1F1422F88797600399A40 /* ccc.app */;
+			productReference = E6A1F1422F88797600399A40 /* CouplendarApp.app */;
 			productType = "com.apple.product-type.application";
 		};
-		E6A1F14E2F88797700399A40 /* cccTests */ = {
+		E6A1F14E2F88797700399A40 /* CouplendarAppTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = E6A1F1662F88797700399A40 /* Build configuration list for PBXNativeTarget "cccTests" */;
+			buildConfigurationList = E6A1F1662F88797700399A40 /* Build configuration list for PBXNativeTarget "CouplendarAppTests" */;
 			buildPhases = (
 				E6A1F14B2F88797700399A40 /* Sources */,
 				E6A1F14C2F88797700399A40 /* Frameworks */,
@@ -133,16 +175,16 @@
 			fileSystemSynchronizedGroups = (
 				E6A1F1522F88797700399A40 /* cccTests */,
 			);
-			name = cccTests;
+			name = CouplendarAppTests;
 			packageProductDependencies = (
 			);
 			productName = cccTests;
-			productReference = E6A1F14F2F88797700399A40 /* cccTests.xctest */;
+			productReference = E6A1F14F2F88797700399A40 /* CouplendarAppTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		E6A1F1582F88797700399A40 /* cccUITests */ = {
+		E6A1F1582F88797700399A40 /* CouplendarAppUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = E6A1F1692F88797700399A40 /* Build configuration list for PBXNativeTarget "cccUITests" */;
+			buildConfigurationList = E6A1F1692F88797700399A40 /* Build configuration list for PBXNativeTarget "CouplendarAppUITests" */;
 			buildPhases = (
 				E6A1F1552F88797700399A40 /* Sources */,
 				E6A1F1562F88797700399A40 /* Frameworks */,
@@ -156,11 +198,11 @@
 			fileSystemSynchronizedGroups = (
 				E6A1F15C2F88797700399A40 /* cccUITests */,
 			);
-			name = cccUITests;
+			name = CouplendarAppUITests;
 			packageProductDependencies = (
 			);
 			productName = cccUITests;
-			productReference = E6A1F1592F88797700399A40 /* cccUITests.xctest */;
+			productReference = E6A1F1592F88797700399A40 /* CouplendarAppUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -186,7 +228,7 @@
 					};
 				};
 			};
-			buildConfigurationList = E6A1F13D2F88797600399A40 /* Build configuration list for PBXProject "ccc" */;
+			buildConfigurationList = E6A1F13D2F88797600399A40 /* Build configuration list for PBXProject "CouplendarApp" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -200,9 +242,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				E6A1F1412F88797600399A40 /* ccc */,
-				E6A1F14E2F88797700399A40 /* cccTests */,
-				E6A1F1582F88797700399A40 /* cccUITests */,
+				E6A1F1412F88797600399A40 /* CouplendarApp */,
+				E6A1F14E2F88797700399A40 /* CouplendarAppTests */,
+				E6A1F1582F88797700399A40 /* CouplendarAppUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -258,12 +300,12 @@
 /* Begin PBXTargetDependency section */
 		E6A1F1512F88797700399A40 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = E6A1F1412F88797600399A40 /* ccc */;
+			target = E6A1F1412F88797600399A40 /* CouplendarApp */;
 			targetProxy = E6A1F1502F88797700399A40 /* PBXContainerItemProxy */;
 		};
 		E6A1F15B2F88797700399A40 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = E6A1F1412F88797600399A40 /* ccc */;
+			target = E6A1F1412F88797600399A40 /* CouplendarApp */;
 			targetProxy = E6A1F15A2F88797700399A40 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -487,7 +529,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ccc.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ccc";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CouplendarApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CouplendarApp";
 				XROS_DEPLOYMENT_TARGET = 26.1;
 			};
 			name = Debug;
@@ -512,7 +554,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ccc.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ccc";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CouplendarApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CouplendarApp";
 				XROS_DEPLOYMENT_TARGET = 26.1;
 			};
 			name = Release;
@@ -568,7 +610,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		E6A1F13D2F88797600399A40 /* Build configuration list for PBXProject "ccc" */ = {
+		E6A1F13D2F88797600399A40 /* Build configuration list for PBXProject "CouplendarApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E6A1F1612F88797700399A40 /* Debug */,
@@ -577,7 +619,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		E6A1F1632F88797700399A40 /* Build configuration list for PBXNativeTarget "ccc" */ = {
+		E6A1F1632F88797700399A40 /* Build configuration list for PBXNativeTarget "CouplendarApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E6A1F1642F88797700399A40 /* Debug */,
@@ -586,7 +628,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		E6A1F1662F88797700399A40 /* Build configuration list for PBXNativeTarget "cccTests" */ = {
+		E6A1F1662F88797700399A40 /* Build configuration list for PBXNativeTarget "CouplendarAppTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E6A1F1672F88797700399A40 /* Debug */,
@@ -595,7 +637,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		E6A1F1692F88797700399A40 /* Build configuration list for PBXNativeTarget "cccUITests" */ = {
+		E6A1F1692F88797700399A40 /* Build configuration list for PBXNativeTarget "CouplendarAppUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E6A1F16A2F88797700399A40 /* Debug */,
