@@ -1,0 +1,23 @@
+# SQLite databases
+*.sqlite3
+*.db
+*dbsqlite*
+
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generic caches
+.cache/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Xcode/build caches
+DerivedData/
+.build/

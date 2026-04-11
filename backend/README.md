@@ -5,7 +5,7 @@
 - Django REST Framework
 - SimpleJWT
 - django-cors-headers
-- SQLite by default (PostgreSQL optional through env vars)
+- Neon PostgreSQL (via `DATABASE_URL` or PostgreSQL env vars)
 
 ## Setup
 1. `cd backend`
