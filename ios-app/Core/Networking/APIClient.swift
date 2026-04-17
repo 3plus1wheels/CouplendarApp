@@ -5,7 +5,7 @@ final class APIClient {
 
     let baseURL: URL
 
-    init(baseURL: URL = URL(string: "http://127.0.0.1:8000/api")!) {
+    init(baseURL: URL = URL(string: "http://127.0.0.1:8000/api/")!) {
         self.baseURL = baseURL
     }
 
