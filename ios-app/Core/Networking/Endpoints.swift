@@ -12,6 +12,7 @@ enum Endpoint {
     case refresh
     case me
     case profile
+    case inviteByCode
 
     var path: String {
         switch self {
@@ -20,6 +21,7 @@ enum Endpoint {
         case .refresh: return "api/auth/refresh/"
         case .me: return "api/auth/me/"
         case .profile: return "api/profile/"
+        case .inviteByCode: return "api/couples/invite/"
         }
     }
 }

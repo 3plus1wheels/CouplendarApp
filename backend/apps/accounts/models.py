@@ -1,3 +1,7 @@
+import random
+import re
+import string
+
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 
@@ -18,9 +22,9 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault("is_active", True)
         return self.create_user(email, password, **extra_fields)
 
-
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
+    code = models.CharField(max_length=128, unique=True, blank=True, editable=False)
     display_name = models.CharField(max_length=120)
     first_name = models.CharField(max_length=120, blank=True, default="")
     last_name = models.CharField(max_length=120, blank=True, default="")
@@ -38,3 +42,19 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            base = re.sub(r"[^a-z0-9]", "", (self.display_name or "").lower())
+            if not base:
+                email_prefix = (self.email or "").split("@", 1)[0]
+                base = re.sub(r"[^a-z0-9]", "", email_prefix.lower()) or "user"
+
+            suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+            self.code = f"{base}-{suffix}"
+
+            # Retry until a unique code is found.
+            while type(self).objects.filter(code=self.code).exclude(pk=self.pk).exists():
+                suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+                self.code = f"{base}-{suffix}"
+        super().save(*args, **kwargs)

@@ -5,6 +5,7 @@ import Combine
 final class AuthManager: ObservableObject {
     @Published private(set) var currentUser: User?
     @Published private(set) var isLoading = false
+    @Published private(set) var isRestoringSession = true
     @Published private(set) var errorMessage: String?
 
     private let apiClient: APIClient
@@ -24,7 +25,13 @@ final class AuthManager: ObservableObject {
     }
 
     func restoreSession() async {
-        guard tokenStore.readAccessToken() != nil else { return }
+        isRestoringSession = true
+        defer { isRestoringSession = false }
+
+        guard tokenStore.readAccessToken() != nil else {
+            currentUser = nil
+            return
+        }
         do {
             try await fetchMe()
         } catch {
@@ -115,6 +122,48 @@ final class AuthManager: ObservableObject {
             currentUser = user
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    func sendInvite(inviteCode: String) async -> Bool {
+        guard let accessToken = tokenStore.readAccessToken() else {
+            errorMessage = APIError.unauthorized.localizedDescription
+            return false
+        }
+
+        struct InviteRequest: Encodable {
+            let invite_code: String
+        }
+
+        struct InviteResponse: Decodable {
+            let status: String
+        }
+
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        let normalizedCode = inviteCode
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+            .replacingOccurrences(of: ".", with: "-")
+
+        guard !normalizedCode.isEmpty else {
+            errorMessage = "Invite code is required"
+            return false
+        }
+
+        do {
+            let _: InviteResponse = try await apiClient.request(
+                .inviteByCode,
+                method: .post,
+                body: InviteRequest(invite_code: normalizedCode),
+                accessToken: accessToken
+            )
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
         }
     }
 

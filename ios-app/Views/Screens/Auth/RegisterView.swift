@@ -9,6 +9,22 @@ struct RegisterView: View {
     @State private var displayName = ""
     @State private var isPasswordVisible = false
 
+    private var trimmedEmail: String {
+        email.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedPassword: String {
+        password.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedDisplayName: String {
+        displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var canSubmit: Bool {
+        !trimmedEmail.isEmpty && !trimmedPassword.isEmpty && !trimmedDisplayName.isEmpty
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
@@ -169,7 +185,11 @@ struct RegisterView: View {
     private var continueButton: some View {
         Button {
             Task {
-                await authManager.register(email: email, password: password, displayName: displayName)
+                await authManager.register(
+                    email: trimmedEmail,
+                    password: trimmedPassword,
+                    displayName: trimmedDisplayName
+                )
             }
         } label: {
             Text(authManager.isLoading ? "Creating..." : "Continue →")
@@ -188,8 +208,8 @@ struct RegisterView: View {
                 .shadow(color: Color(red: 0.85, green: 0.35, blue: 0.62).opacity(0.28), radius: 12, y: 7)
         }
         .buttonStyle(.plain)
-        .disabled(authManager.isLoading || email.isEmpty || password.isEmpty || displayName.isEmpty)
-        .opacity(authManager.isLoading || email.isEmpty || password.isEmpty || displayName.isEmpty ? 0.7 : 1.0)
+        .disabled(authManager.isLoading || !canSubmit)
+        .opacity(authManager.isLoading || !canSubmit ? 0.7 : 1.0)
     }
 
     private var footer: some View {

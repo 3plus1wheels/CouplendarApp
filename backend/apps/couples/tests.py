@@ -2,6 +2,9 @@ from django.test import TestCase
 from django.core.exceptions import ValidationError
 from datetime import date, time
 
+from rest_framework import status
+from rest_framework.test import APITestCase
+
 from apps.accounts.models import User
 from .models import (
     Couple,
@@ -90,3 +93,35 @@ class EventModelTests(TestCase):
         self.assertTrue(event.repeats_on_weekday(0))
         self.assertTrue(event.repeats_on_weekday(2))
         self.assertFalse(event.repeats_on_weekday(1))
+
+
+class InviteByCodeAPITests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(email="owner@example.com", password="pass123", display_name="owner")
+        self.partner = User.objects.create_user(email="partner@example.com", password="pass123", display_name="partner")
+
+    def test_invite_by_code_creates_couple(self):
+        self.client.force_authenticate(self.owner)
+        response = self.client.post("/api/couples/invite/", {"invite_code": self.partner.code}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Couple.objects.count(), 1)
+        couple = Couple.objects.first()
+        self.assertIsNotNone(couple)
+        self.assertSetEqual({couple.user1_id, couple.user2_id}, {self.owner.id, self.partner.id})
+
+    def test_invite_by_code_rejects_invalid_code(self):
+        self.client.force_authenticate(self.owner)
+        response = self.client.post("/api/couples/invite/", {"invite_code": "missing-0000"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_invite_by_code_rejects_self_invite(self):
+        self.client.force_authenticate(self.owner)
+        response = self.client.post("/api/couples/invite/", {"invite_code": self.owner.code}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_invite_by_code_rejects_when_requester_already_coupled(self):
+        outsider = User.objects.create_user(email="outsider@example.com", password="pass123", display_name="outsider")
+        Couple.objects.create(user1=self.owner, user2=self.partner)
+        self.client.force_authenticate(self.owner)
+        response = self.client.post("/api/couples/invite/", {"invite_code": outsider.code}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)

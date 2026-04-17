@@ -8,6 +8,18 @@ struct LoginView: View {
     @State private var password = ""
     @State private var isPasswordVisible = false
 
+    private var trimmedEmail: String {
+        email.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedPassword: String {
+        password.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var canSubmit: Bool {
+        !trimmedEmail.isEmpty && !trimmedPassword.isEmpty
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
@@ -112,7 +124,7 @@ struct LoginView: View {
     private var signInButton: some View {
         Button {
             Task {
-                await authManager.login(email: email, password: password)
+                await authManager.login(email: trimmedEmail, password: trimmedPassword)
             }
         } label: {
             Text(authManager.isLoading ? "Signing In..." : "Sign In")
@@ -131,8 +143,8 @@ struct LoginView: View {
                 .shadow(color: Color(red: 0.85, green: 0.35, blue: 0.62).opacity(0.28), radius: 12, y: 7)
         }
         .buttonStyle(.plain)
-        .disabled(authManager.isLoading || email.isEmpty || password.isEmpty)
-        .opacity(authManager.isLoading || email.isEmpty || password.isEmpty ? 0.7 : 1.0)
+        .disabled(authManager.isLoading || !canSubmit)
+        .opacity(authManager.isLoading || !canSubmit ? 0.7 : 1.0)
     }
 
     private var socialDivider: some View {
