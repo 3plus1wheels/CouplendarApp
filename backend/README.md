@@ -5,7 +5,7 @@
 - Django REST Framework
 - SimpleJWT
 - django-cors-headers
-- Neon PostgreSQL (via `DATABASE_URL` or PostgreSQL env vars)
+- Neon PostgreSQL (via `DATABASE_URL` only)
 
 ## Setup
 1. `cd backend`

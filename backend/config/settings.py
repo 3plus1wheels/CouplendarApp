@@ -7,6 +7,24 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def _load_dotenv(env_file: Path) -> None:
+    if not env_file.exists():
+        return
+
+    for raw_line in env_file.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        os.environ.setdefault(key, value)
+
+
+_load_dotenv(BASE_DIR / ".env")
+
+
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-only-change-me")
 DEBUG = os.getenv("DEBUG", "1") == "1"
 ALLOWED_HOSTS = [h for h in os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",") if h]
@@ -61,28 +79,17 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-if os.getenv("DATABASE_URL"):
-    DATABASES = {
-        "default": dj_database_url.parse(
-            os.getenv("DATABASE_URL"),
-            conn_max_age=600,
-            ssl_require=True,
-        )
-    }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("POSTGRES_DB", "neondb"),
-            "USER": os.getenv("POSTGRES_USER", ""),
-            "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
-            "HOST": os.getenv("POSTGRES_HOST", ""),
-            "PORT": os.getenv("POSTGRES_PORT", "5432"),
-            "OPTIONS": {
-                "sslmode": os.getenv("POSTGRES_SSLMODE", "require"),
-            },
-        }
-    }
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL is required and must point to a PostgreSQL database.")
+
+DATABASES = {
+    "default": dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=600,
+        ssl_require=True,
+    )
+}
 
 
 # Password validation
