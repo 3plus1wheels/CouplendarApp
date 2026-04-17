@@ -5,7 +5,7 @@ final class APIClient {
 
     let baseURL: URL
 
-    init(baseURL: URL = URL(string: "http://127.0.0.1:8000/api/")!) {
+    init(baseURL: URL = URL(string: "http://127.0.0.1:8000/")!) {
         self.baseURL = baseURL
     }
 
@@ -15,7 +15,9 @@ final class APIClient {
         body: Body? = nil,
         accessToken: String? = nil
     ) async throws -> Response {
-        guard let url = URL(string: endpoint.path, relativeTo: baseURL) else {
+        let normalizedPath = endpoint.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let url = baseURL.appendingPathComponent(normalizedPath, isDirectory: true)
+        guard URLComponents(url: url, resolvingAgainstBaseURL: false) != nil else {
             throw APIError.invalidURL
         }
 
@@ -23,6 +25,9 @@ final class APIClient {
         request.httpMethod = method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        #if DEBUG
+        print("API request:", request.httpMethod ?? "", url.absoluteString)
+        #endif
         if let accessToken {
             request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         }
@@ -43,6 +48,12 @@ final class APIClient {
 
             guard (200...299).contains(httpResponse.statusCode) else {
                 let message = String(data: data, encoding: .utf8)
+                if let message, message.contains("<!DOCTYPE html>") {
+                    throw APIError.server(
+                        statusCode: httpResponse.statusCode,
+                        message: "Server returned HTML error page. Check API route and backend restart."
+                    )
+                }
                 throw APIError.server(statusCode: httpResponse.statusCode, message: message)
             }
 

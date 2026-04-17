@@ -15,11 +15,11 @@ enum Endpoint {
 
     var path: String {
         switch self {
-        case .register: return "auth/register/"
-        case .login: return "auth/login/"
-        case .refresh: return "auth/refresh/"
-        case .me: return "auth/me/"
-        case .profile: return "profile/"
+        case .register: return "api/auth/register/"
+        case .login: return "api/auth/login/"
+        case .refresh: return "api/auth/refresh/"
+        case .me: return "api/auth/me/"
+        case .profile: return "api/profile/"
         }
     }
 }
