@@ -3,6 +3,7 @@
 *.db
 *dbsqlite*
 
+
 # Python caches
 __pycache__/
 *.py[cod]
