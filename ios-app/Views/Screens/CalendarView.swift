@@ -1,12 +1,26 @@
 import SwiftUI
 
 struct CalendarView: View {
+    @EnvironmentObject private var authManager: AuthManager
     @StateObject private var viewModel = CalendarViewModel()
+    @State private var showProfile = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppSpacing.lg) {
-                Text(viewModel.monthTitle).font(AppTypography.largeTitle).foregroundStyle(AppColors.primaryText)
+                HStack {
+                    Text(viewModel.monthTitle).font(AppTypography.largeTitle).foregroundStyle(AppColors.primaryText)
+                    Spacer()
+                    Button {
+                        showProfile = true
+                    } label: {
+                        Image(systemName: "person.crop.circle.fill")
+                            .font(.system(size: 30))
+                            .foregroundStyle(AppColors.blush)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("open_profile_button")
+                }
 
                 Picker("Mode", selection: $viewModel.mode) {
                     ForEach(CalendarViewModel.Mode.allCases) { mode in
@@ -41,6 +55,12 @@ struct CalendarView: View {
             .padding()
         }
         .background(GlassBackgroundView())
+        .sheet(isPresented: $showProfile) {
+            NavigationStack {
+                ProfileView()
+            }
+            .environmentObject(authManager)
+        }
     }
 }
 

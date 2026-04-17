@@ -37,7 +37,11 @@ class LoginView(APIView):
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            non_field_errors = serializer.errors.get("non_field_errors", [])
+            if any(str(error) == "Invalid email or password" for error in non_field_errors):
+                return Response({"detail": "Invalid email or password"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         user = serializer.validated_data["user"]
 
         refresh = RefreshToken.for_user(user)

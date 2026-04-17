@@ -11,7 +11,6 @@ struct LoginView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                topRow
                 brandRow
                 titleBlock
                 formBlock
@@ -22,25 +21,10 @@ struct LoginView: View {
                 footer
             }
             .padding(.horizontal, 18)
-            .padding(.top, 18)
+            .padding(.top, 16)
             .padding(.bottom, 24)
         }
         .background(Color(red: 0.95, green: 0.94, blue: 0.97).ignoresSafeArea())
-    }
-
-    private var topRow: some View {
-        HStack {
-            Button {
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(Color(red: 0.49, green: 0.47, blue: 0.59))
-                    .frame(width: 38, height: 38)
-                    .background(.white.opacity(0.95), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            Spacer()
-        }
     }
 
     private var brandRow: some View {
@@ -180,7 +164,9 @@ struct LoginView: View {
                 .font(.title3.weight(.medium))
                 .foregroundStyle(Color(red: 0.56, green: 0.53, blue: 0.65))
             Button("Create an account") {
-                showRegister = true
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                    showRegister = true
+                }
             }
             .buttonStyle(.plain)
             .font(.title3.weight(.bold))

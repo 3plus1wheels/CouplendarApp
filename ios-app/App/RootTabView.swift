@@ -9,8 +9,6 @@ struct RootTabView: View {
                 .tabItem { Label("Calendar", systemImage: "calendar") }
             ExploreView()
                 .tabItem { Label("Explore", systemImage: "safari") }
-            ProfileView()
-                .tabItem { Label("Profile", systemImage: "person.crop.circle") }
         }
         .floatingTabBar()
         .accessibilityIdentifier("root_tab_view")

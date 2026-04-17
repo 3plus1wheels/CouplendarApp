@@ -2,7 +2,7 @@ import SwiftUI
 
 struct RegisterView: View {
     @EnvironmentObject private var authManager: AuthManager
-    @Environment(\.dismiss) private var dismiss
+    @Binding var showRegister: Bool
 
     @State private var email = ""
     @State private var password = ""
@@ -33,12 +33,15 @@ struct RegisterView: View {
             .padding(.top, 8)
         }
         .background(Color(red: 0.95, green: 0.94, blue: 0.97).ignoresSafeArea())
+        .navigationBarBackButtonHidden(true)
     }
 
     private var topRow: some View {
         HStack {
             Button {
-                dismiss()
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                    showRegister = false
+                }
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.headline.weight(.semibold))
@@ -167,9 +170,6 @@ struct RegisterView: View {
         Button {
             Task {
                 await authManager.register(email: email, password: password, displayName: displayName)
-                if authManager.isAuthenticated {
-                    dismiss()
-                }
             }
         } label: {
             Text(authManager.isLoading ? "Creating..." : "Continue →")
@@ -199,7 +199,9 @@ struct RegisterView: View {
                 .font(.title3.weight(.medium))
                 .foregroundStyle(Color(red: 0.56, green: 0.53, blue: 0.65))
             Button("Sign in") {
-                dismiss()
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.9)) {
+                    showRegister = false
+                }
             }
             .buttonStyle(.plain)
             .font(.title3.weight(.bold))
@@ -276,6 +278,6 @@ private struct SocialStubButton: View {
 }
 
 #Preview {
-    RegisterView()
+    RegisterView(showRegister: .constant(true))
         .environmentObject(AuthManager())
 }

@@ -18,12 +18,28 @@ private struct AuthLandingView: View {
     @State private var showRegister = false
 
     var body: some View {
-        NavigationStack {
-            LoginView(showRegister: $showRegister)
-                .navigationDestination(isPresented: $showRegister) {
-                    RegisterView()
-                }
+        ZStack {
+            if showRegister {
+                RegisterView(showRegister: $showRegister)
+                    .transition(
+                        .asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        )
+                    )
+                    .zIndex(1)
+            } else {
+                LoginView(showRegister: $showRegister)
+                    .transition(
+                        .asymmetric(
+                            insertion: .move(edge: .leading).combined(with: .opacity),
+                            removal: .move(edge: .trailing).combined(with: .opacity)
+                        )
+                    )
+                    .zIndex(0)
+            }
         }
+        .animation(.spring(response: 0.4, dampingFraction: 0.9), value: showRegister)
     }
 }
 
