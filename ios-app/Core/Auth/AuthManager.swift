@@ -167,6 +167,35 @@ final class AuthManager: ObservableObject {
         }
     }
 
+    func fetchInboxNotifications() async throws -> PaginatedResponse<NotificationInboxDTO> {
+        guard let accessToken = tokenStore.readAccessToken() else {
+            throw APIError.unauthorized
+        }
+        return try await apiClient.request(.notificationInbox, method: .get, accessToken: accessToken)
+    }
+
+    func fetchReminderRules() async throws -> PaginatedResponse<EventReminderRuleDTO> {
+        guard let accessToken = tokenStore.readAccessToken() else {
+            throw APIError.unauthorized
+        }
+        return try await apiClient.request(.notificationReminders, method: .get, accessToken: accessToken)
+    }
+
+    func markNotificationRead(notificationId: Int) async throws -> NotificationInboxDTO {
+        guard let accessToken = tokenStore.readAccessToken() else {
+            throw APIError.unauthorized
+        }
+        return try await apiClient.request(.notificationMarkRead(id: notificationId), method: .patch, accessToken: accessToken)
+    }
+
+    func markAllNotificationsRead() async throws -> Int {
+        guard let accessToken = tokenStore.readAccessToken() else {
+            throw APIError.unauthorized
+        }
+        let response: MarkAllReadResponse = try await apiClient.request(.notificationMarkAllRead, method: .post, accessToken: accessToken)
+        return response.updatedCount
+    }
+
     func logout() {
         tokenStore.clear()
         currentUser = nil

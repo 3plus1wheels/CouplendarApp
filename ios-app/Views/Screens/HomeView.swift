@@ -26,6 +26,7 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showNotifications) {
             NotificationsSheetView(isPresented: $showNotifications)
+                .environmentObject(authManager)
         }
     }
 
@@ -140,8 +141,9 @@ struct HomeView: View {
 }
 
 private struct NotificationsSheetView: View {
+    @EnvironmentObject private var authManager: AuthManager
     @Binding var isPresented: Bool
-    @State private var items: [NotificationItem] = NotificationItem.mock
+    @StateObject private var viewModel = NotificationsViewModel()
 
     var body: some View {
         ZStack {
@@ -156,7 +158,7 @@ private struct NotificationsSheetView: View {
                     Text("Notifications")
                         .font(AppTypography.title)
                         .foregroundStyle(AppColors.primaryText)
-                    Text("\(items.filter { !$0.isRead }.count)")
+                    Text("\(viewModel.unreadCount)")
                         .font(AppTypography.caption.weight(.bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, AppSpacing.xs)
@@ -165,7 +167,9 @@ private struct NotificationsSheetView: View {
                         .clipShape(Capsule())
                     Spacer()
                     Button {
-                        for index in items.indices { items[index].isRead = true }
+                        Task {
+                            await viewModel.markAllRead(authManager: authManager)
+                        }
                     } label: {
                         Text("Mark all read")
                             .font(AppTypography.caption.weight(.semibold))
@@ -193,8 +197,36 @@ private struct NotificationsSheetView: View {
 
                 ScrollView {
                     VStack(spacing: AppSpacing.sm) {
-                        ForEach(items) { item in
-                            NotificationCard(item: item)
+                        if viewModel.isLoading && viewModel.items.isEmpty {
+                            ProgressView()
+                                .padding(.top, AppSpacing.lg)
+                        }
+
+                        if let errorMessage = viewModel.errorMessage, !errorMessage.isEmpty {
+                            PrimaryCard {
+                                Text(errorMessage)
+                                    .font(AppTypography.body)
+                                    .foregroundStyle(AppColors.blush)
+                            }
+                        }
+
+                        if !viewModel.isLoading && viewModel.items.isEmpty {
+                            PrimaryCard {
+                                Text("No notifications yet")
+                                    .font(AppTypography.body)
+                                    .foregroundStyle(AppColors.secondaryText)
+                            }
+                        }
+
+                        ForEach(viewModel.items) { item in
+                            Button {
+                                Task {
+                                    await viewModel.markRead(item: item, authManager: authManager)
+                                }
+                            } label: {
+                                NotificationCard(item: item)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, AppSpacing.md)
@@ -204,20 +236,23 @@ private struct NotificationsSheetView: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
+        .task {
+            await viewModel.load(authManager: authManager)
+        }
     }
 }
 
 private struct NotificationCard: View {
-    let item: NotificationItem
+    let item: NotificationFeedItem
 
     var body: some View {
         HStack(alignment: .top, spacing: AppSpacing.sm) {
             ZStack(alignment: .topTrailing) {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(item.iconBg)
+                    .fill(iconBackgroundColor)
                     .frame(width: 44, height: 44)
                     .overlay(
-                        Text(item.icon)
+                        Text(iconEmoji)
                             .font(.system(size: 20))
                     )
                 if !item.isRead {
@@ -243,10 +278,10 @@ private struct NotificationCard: View {
                     .foregroundStyle(AppColors.secondaryText)
                 Text(item.tag)
                     .font(AppTypography.caption.weight(.bold))
-                    .foregroundStyle(item.tagColor)
+                    .foregroundStyle(tagColor)
                     .padding(.horizontal, AppSpacing.xs)
                     .padding(.vertical, 3)
-                    .background(item.tagColor.opacity(0.15))
+                    .background(tagColor.opacity(0.15))
                     .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             }
         }
@@ -259,65 +294,36 @@ private struct NotificationCard: View {
                 .stroke(item.isRead ? .clear : AppColors.lavender.opacity(0.3), lineWidth: 1)
         )
     }
-}
 
-private struct NotificationItem: Identifiable {
-    let id: UUID
-    var title: String
-    var body: String
-    var timeAgo: String
-    var tag: String
-    var tagColor: Color
-    var icon: String
-    var iconBg: Color
-    var isRead: Bool
+    private var tagColor: Color {
+        switch item.tag {
+        case "INVITE":
+            return AppColors.lavender
+        case "EVENT":
+            return AppColors.mint
+        case "REMINDER RULE":
+            return AppColors.secondaryText
+        default:
+            return AppColors.blush
+        }
+    }
 
-    static let mock: [NotificationItem] = [
-        NotificationItem(
-            id: UUID(),
-            title: "Alex added a plan",
-            body: "\"Rooftop Drinks\" has been added to your shared calendar for Apr 22.",
-            timeAgo: "2m ago",
-            tag: "PLANS",
-            tagColor: AppColors.lavender,
-            icon: "🥃",
-            iconBg: AppColors.lavender.opacity(0.25),
-            isRead: false
-        ),
-        NotificationItem(
-            id: UUID(),
-            title: "Coming up soon",
-            body: "Candlelit Dinner at La Maison is in 6 days. Confirm reservation soon.",
-            timeAgo: "1h ago",
-            tag: "REMINDER",
-            tagColor: AppColors.blush,
-            icon: "💞",
-            iconBg: AppColors.blush.opacity(0.22),
-            isRead: false
-        ),
-        NotificationItem(
-            id: UUID(),
-            title: "New place for you",
-            body: "Based on your vibe, try The Botanic Garden, a hidden gem nearby.",
-            timeAgo: "3h ago",
-            tag: "EXPLORE",
-            tagColor: AppColors.mint,
-            icon: "🌿",
-            iconBg: AppColors.mint.opacity(0.25),
-            isRead: false
-        ),
-        NotificationItem(
-            id: UUID(),
-            title: "Alex loved your idea",
-            body: "Alex reacted to your \"Cherry Blossom Walk\" plan suggestion.",
-            timeAgo: "Today",
-            tag: "PLANS",
-            tagColor: AppColors.lavender,
-            icon: "❤️",
-            iconBg: AppColors.lavender.opacity(0.18),
-            isRead: true
-        ),
-    ]
+    private var iconEmoji: String {
+        switch item.tag {
+        case "INVITE":
+            return "💌"
+        case "EVENT":
+            return "📅"
+        case "REMINDER RULE":
+            return "⚙️"
+        default:
+            return "⏰"
+        }
+    }
+
+    private var iconBackgroundColor: Color {
+        tagColor.opacity(0.22)
+    }
 }
 
 #Preview { HomeView() }

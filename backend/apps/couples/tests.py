@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import User
+from apps.notifications.models import NotificationInbox, NotificationInboxType
 from .models import (
     Couple,
     Event,
@@ -108,6 +109,16 @@ class InviteByCodeAPITests(APITestCase):
         couple = Couple.objects.first()
         self.assertIsNotNone(couple)
         self.assertSetEqual({couple.user1_id, couple.user2_id}, {self.owner.id, self.partner.id})
+
+    def test_invite_by_code_creates_inbox_notifications_for_both_users(self):
+        self.client.force_authenticate(self.owner)
+        response = self.client.post("/api/couples/invite/", {"invite_code": self.partner.code}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            NotificationInbox.objects.filter(type=NotificationInboxType.INVITE, user__in=[self.owner, self.partner]).count(),
+            2,
+        )
 
     def test_invite_by_code_rejects_invalid_code(self):
         self.client.force_authenticate(self.owner)

@@ -4,11 +4,14 @@ from .models import EventReminder, NotificationInbox, ScheduledNotification
 
 
 class EventReminderSerializer(serializers.ModelSerializer):
+    event_name = serializers.CharField(source="event.name", read_only=True)
+
     class Meta:
         model = EventReminder
         fields = (
             "id",
             "event",
+            "event_name",
             "user",
             "offset_minutes",
             "channel",
@@ -19,7 +22,7 @@ class EventReminderSerializer(serializers.ModelSerializer):
 
 
 class NotificationInboxSerializer(serializers.ModelSerializer):
-    event_id = serializers.IntegerField(source="event_id", read_only=True)
+    event_id = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = NotificationInbox

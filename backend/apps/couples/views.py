@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
+from apps.notifications.models import NotificationInbox, NotificationInboxType
 from .models import Couple
 from .serializers import CoupleSerializer
 
@@ -44,6 +45,21 @@ class InviteByCodeView(APIView):
 
         with transaction.atomic():
             couple, created = Couple.objects.get_or_create(user1=user_low, user2=user_high)
+            if created:
+                NotificationInbox.objects.create(
+                    user=request.user,
+                    event=None,
+                    type=NotificationInboxType.INVITE,
+                    title="Partner connected",
+                    body=f"You and {invited_user.display_name} are now connected.",
+                )
+                NotificationInbox.objects.create(
+                    user=invited_user,
+                    event=None,
+                    type=NotificationInboxType.INVITE,
+                    title="New partner invite",
+                    body=f"{request.user.display_name} connected with you on Couplendar.",
+                )
 
         serializer = CoupleSerializer(couple)
         return Response(
