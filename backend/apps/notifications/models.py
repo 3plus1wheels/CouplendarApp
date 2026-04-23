@@ -127,6 +127,7 @@ class NotificationInbox(models.Model):
     type = models.CharField(max_length=50, choices=NotificationInboxType.choices)
     title = models.CharField(max_length=255)
     body = models.TextField()
+    data = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     read_at = models.DateTimeField(null=True, blank=True)
 

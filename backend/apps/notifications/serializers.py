@@ -23,6 +23,7 @@ class EventReminderSerializer(serializers.ModelSerializer):
 
 class NotificationInboxSerializer(serializers.ModelSerializer):
     event_id = serializers.IntegerField(read_only=True)
+    data = serializers.JSONField(read_only=True)
 
     class Meta:
         model = NotificationInbox
@@ -31,6 +32,7 @@ class NotificationInboxSerializer(serializers.ModelSerializer):
             "type",
             "title",
             "body",
+            "data",
             "created_at",
             "read_at",
             "event_id",

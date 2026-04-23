@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 @MainActor
 final class NotificationsViewModel: ObservableObject {
@@ -32,6 +33,8 @@ final class NotificationsViewModel: ObservableObject {
                     timeAgo: Self.relativeTimeLabel(from: dto.createdAt),
                     tag: Self.tagForInboxType(dto.type),
                     type: dto.type,
+                    inviteId: dto.data?.inviteId,
+                    inviteAction: dto.data?.action,
                     isRead: dto.readAt != nil
                 )
             }
@@ -49,6 +52,8 @@ final class NotificationsViewModel: ObservableObject {
                     timeAgo: "Rule",
                     tag: "REMINDER RULE",
                     type: "event_reminder_rule",
+                    inviteId: nil,
+                    inviteAction: nil,
                     isRead: true
                 )
             }
@@ -89,6 +94,26 @@ final class NotificationsViewModel: ObservableObject {
             }
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    func acceptInvite(item: NotificationFeedItem, authManager: AuthManager) async {
+        guard item.canRespondToInvite, let inviteId = item.inviteId else { return }
+        let accepted = await authManager.acceptInvite(inviteId: inviteId)
+        if accepted {
+            await load(authManager: authManager)
+        } else if let message = authManager.errorMessage {
+            errorMessage = message
+        }
+    }
+
+    func declineInvite(item: NotificationFeedItem, authManager: AuthManager) async {
+        guard item.canRespondToInvite, let inviteId = item.inviteId else { return }
+        let declined = await authManager.declineInvite(inviteId: inviteId)
+        if declined {
+            await load(authManager: authManager)
+        } else if let message = authManager.errorMessage {
+            errorMessage = message
         }
     }
 

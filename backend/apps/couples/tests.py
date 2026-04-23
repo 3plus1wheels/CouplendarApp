@@ -9,6 +9,8 @@ from apps.accounts.models import User
 from apps.notifications.models import NotificationInbox, NotificationInboxType
 from .models import (
     Couple,
+    CoupleInvite,
+    CoupleInviteStatus,
     Event,
     REPEAT_MONDAY,
     REPEAT_WEDNESDAY,
@@ -101,14 +103,17 @@ class InviteByCodeAPITests(APITestCase):
         self.owner = User.objects.create_user(email="owner@example.com", password="pass123", display_name="owner")
         self.partner = User.objects.create_user(email="partner@example.com", password="pass123", display_name="partner")
 
-    def test_invite_by_code_creates_couple(self):
+    def test_invite_by_code_creates_pending_invite(self):
         self.client.force_authenticate(self.owner)
         response = self.client.post("/api/couples/invite/", {"invite_code": self.partner.code}, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Couple.objects.count(), 1)
-        couple = Couple.objects.first()
-        self.assertIsNotNone(couple)
-        self.assertSetEqual({couple.user1_id, couple.user2_id}, {self.owner.id, self.partner.id})
+        self.assertEqual(Couple.objects.count(), 0)
+        self.assertEqual(CoupleInvite.objects.count(), 1)
+        invite = CoupleInvite.objects.first()
+        self.assertIsNotNone(invite)
+        self.assertEqual(invite.status, CoupleInviteStatus.PENDING)
+        self.assertEqual(invite.from_user_id, self.owner.id)
+        self.assertEqual(invite.to_user_id, self.partner.id)
 
     def test_invite_by_code_creates_inbox_notifications_for_both_users(self):
         self.client.force_authenticate(self.owner)
@@ -119,6 +124,8 @@ class InviteByCodeAPITests(APITestCase):
             NotificationInbox.objects.filter(type=NotificationInboxType.INVITE, user__in=[self.owner, self.partner]).count(),
             2,
         )
+        incoming = NotificationInbox.objects.get(user=self.partner, title="New partner invite")
+        self.assertEqual(incoming.data.get("invite_id"), response.data["invite_id"])
 
     def test_invite_by_code_rejects_invalid_code(self):
         self.client.force_authenticate(self.owner)
@@ -136,3 +143,29 @@ class InviteByCodeAPITests(APITestCase):
         self.client.force_authenticate(self.owner)
         response = self.client.post("/api/couples/invite/", {"invite_code": outsider.code}, format="json")
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+
+    def test_accept_invite_creates_couple(self):
+        self.client.force_authenticate(self.owner)
+        invite_response = self.client.post("/api/couples/invite/", {"invite_code": self.partner.code}, format="json")
+        invite_id = invite_response.data["invite_id"]
+
+        self.client.force_authenticate(self.partner)
+        accept_response = self.client.post(f"/api/couples/invite/{invite_id}/accept/", {}, format="json")
+        self.assertEqual(accept_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(accept_response.data["status"], "accepted")
+        self.assertEqual(Couple.objects.count(), 1)
+        invite = CoupleInvite.objects.get(id=invite_id)
+        self.assertEqual(invite.status, CoupleInviteStatus.ACCEPTED)
+
+    def test_decline_invite_marks_declined(self):
+        self.client.force_authenticate(self.owner)
+        invite_response = self.client.post("/api/couples/invite/", {"invite_code": self.partner.code}, format="json")
+        invite_id = invite_response.data["invite_id"]
+
+        self.client.force_authenticate(self.partner)
+        decline_response = self.client.post(f"/api/couples/invite/{invite_id}/decline/", {}, format="json")
+        self.assertEqual(decline_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(decline_response.data["status"], "declined")
+        self.assertEqual(Couple.objects.count(), 0)
+        invite = CoupleInvite.objects.get(id=invite_id)
+        self.assertEqual(invite.status, CoupleInviteStatus.DECLINED)

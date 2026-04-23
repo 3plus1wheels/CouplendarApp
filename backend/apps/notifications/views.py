@@ -5,7 +5,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.couples.models import Couple
+
 from .models import EventReminder, NotificationInbox
+from .models import NotificationInboxType
 from .serializers import EventReminderSerializer, NotificationInboxSerializer
 
 
@@ -21,7 +24,13 @@ class NotificationInboxListView(generics.ListAPIView):
     pagination_class = NotificationPagination
 
     def get_queryset(self):
-        return NotificationInbox.objects.filter(user=self.request.user).select_related("event").order_by("-created_at", "-id")
+        queryset = NotificationInbox.objects.filter(user=self.request.user)
+
+        in_couple = Couple.objects.filter(user1=self.request.user).exists() or Couple.objects.filter(user2=self.request.user).exists()
+        if in_couple:
+            queryset = queryset.exclude(type=NotificationInboxType.INVITE)
+
+        return queryset.select_related("event").order_by("-created_at", "-id")
 
 
 class EventReminderListView(generics.ListAPIView):

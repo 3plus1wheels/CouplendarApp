@@ -167,6 +167,60 @@ final class AuthManager: ObservableObject {
         }
     }
 
+    func acceptInvite(inviteId: Int) async -> Bool {
+        guard let accessToken = tokenStore.readAccessToken() else {
+            errorMessage = APIError.unauthorized.localizedDescription
+            return false
+        }
+
+        struct InviteActionResponse: Decodable {
+            let status: String
+        }
+
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            let _: InviteActionResponse = try await apiClient.request(
+                .acceptInvite(id: inviteId),
+                method: .post,
+                accessToken: accessToken
+            )
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    func declineInvite(inviteId: Int) async -> Bool {
+        guard let accessToken = tokenStore.readAccessToken() else {
+            errorMessage = APIError.unauthorized.localizedDescription
+            return false
+        }
+
+        struct InviteActionResponse: Decodable {
+            let status: String
+        }
+
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            let _: InviteActionResponse = try await apiClient.request(
+                .declineInvite(id: inviteId),
+                method: .post,
+                accessToken: accessToken
+            )
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     func fetchInboxNotifications() async throws -> PaginatedResponse<NotificationInboxDTO> {
         guard let accessToken = tokenStore.readAccessToken() else {
             throw APIError.unauthorized

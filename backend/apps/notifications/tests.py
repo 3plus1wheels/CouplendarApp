@@ -213,3 +213,15 @@ class NotificationAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["id"], self.reminder.id)
+
+    def test_inbox_list_excludes_invite_notifications_when_user_in_couple(self):
+        Couple.objects.create(user1=self.owner, user2=self.partner)
+
+        self.client.force_authenticate(self.owner)
+        response = self.client.get("/api/notifications/inbox/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        result_ids = {item["id"] for item in response.data["results"]}
+        self.assertIn(self.inbox_unread.id, result_ids)
+        self.assertNotIn(self.inbox_read.id, result_ids)

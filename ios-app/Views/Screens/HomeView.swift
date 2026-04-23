@@ -144,6 +144,7 @@ private struct NotificationsSheetView: View {
     @EnvironmentObject private var authManager: AuthManager
     @Binding var isPresented: Bool
     @StateObject private var viewModel = NotificationsViewModel()
+    @State private var processingInviteIds: Set<Int> = []
 
     var body: some View {
         ZStack {
@@ -219,14 +220,33 @@ private struct NotificationsSheetView: View {
                         }
 
                         ForEach(viewModel.items) { item in
-                            Button {
+                            NotificationCard(
+                                item: item,
+                                onAcceptInvite: item.canRespondToInvite ? {
+                                    guard let inviteId = item.inviteId else { return }
+                                    processingInviteIds.insert(inviteId)
+                                    Task {
+                                        await viewModel.acceptInvite(item: item, authManager: authManager)
+                                        processingInviteIds.remove(inviteId)
+                                    }
+                                } : nil,
+                                onDeclineInvite: item.canRespondToInvite ? {
+                                    guard let inviteId = item.inviteId else { return }
+                                    processingInviteIds.insert(inviteId)
+                                    Task {
+                                        await viewModel.declineInvite(item: item, authManager: authManager)
+                                        processingInviteIds.remove(inviteId)
+                                    }
+                                } : nil,
+                                isInviteActionLoading: item.inviteId.map { processingInviteIds.contains($0) } ?? false
+                            )
+                            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            .onTapGesture {
+                                guard !item.canRespondToInvite else { return }
                                 Task {
                                     await viewModel.markRead(item: item, authManager: authManager)
                                 }
-                            } label: {
-                                NotificationCard(item: item)
                             }
-                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, AppSpacing.md)
@@ -244,6 +264,9 @@ private struct NotificationsSheetView: View {
 
 private struct NotificationCard: View {
     let item: NotificationFeedItem
+    let onAcceptInvite: (() -> Void)?
+    let onDeclineInvite: (() -> Void)?
+    let isInviteActionLoading: Bool
 
     var body: some View {
         HStack(alignment: .top, spacing: AppSpacing.sm) {
@@ -283,6 +306,41 @@ private struct NotificationCard: View {
                     .padding(.vertical, 3)
                     .background(tagColor.opacity(0.15))
                     .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+                if item.canRespondToInvite {
+                    HStack {
+                        Spacer()
+                        HStack(spacing: AppSpacing.xs) {
+                            Button {
+                                onDeclineInvite?()
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 30, height: 30)
+                                    .background(AppColors.blush)
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isInviteActionLoading)
+                            .opacity(isInviteActionLoading ? 0.55 : 1)
+
+                            Button {
+                                onAcceptInvite?()
+                            } label: {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 30, height: 30)
+                                    .background(AppColors.mint)
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isInviteActionLoading)
+                            .opacity(isInviteActionLoading ? 0.55 : 1)
+                        }
+                    }
+                }
             }
         }
         .padding(AppSpacing.md)

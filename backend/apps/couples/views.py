@@ -1,4 +1,6 @@
 from django.db import transaction
+from django.db.models import Q
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -6,7 +8,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.models import User
 from apps.notifications.models import NotificationInbox, NotificationInboxType
-from .models import Couple
+from .models import Couple, CoupleInvite, CoupleInviteStatus
 from .serializers import CoupleSerializer
 
 
@@ -41,28 +43,119 @@ class InviteByCodeView(APIView):
                 status=status.HTTP_409_CONFLICT,
             )
 
-        user_low, user_high = (request.user, invited_user) if request.user.id < invited_user.id else (invited_user, request.user)
-
         with transaction.atomic():
-            couple, created = Couple.objects.get_or_create(user1=user_low, user2=user_high)
-            if created:
-                NotificationInbox.objects.create(
-                    user=request.user,
-                    event=None,
-                    type=NotificationInboxType.INVITE,
-                    title="Partner connected",
-                    body=f"You and {invited_user.display_name} are now connected.",
-                )
-                NotificationInbox.objects.create(
-                    user=invited_user,
-                    event=None,
-                    type=NotificationInboxType.INVITE,
-                    title="New partner invite",
-                    body=f"{request.user.display_name} connected with you on Couplendar.",
-                )
+            pending_exists = CoupleInvite.objects.select_for_update().filter(
+                Q(from_user=request.user, to_user=invited_user, status=CoupleInviteStatus.PENDING)
+                | Q(from_user=invited_user, to_user=request.user, status=CoupleInviteStatus.PENDING)
+            ).exists()
+            if pending_exists:
+                return Response({"detail": "A pending invite already exists."}, status=status.HTTP_409_CONFLICT)
+
+            invite = CoupleInvite.objects.create(from_user=request.user, to_user=invited_user)
+            NotificationInbox.objects.create(
+                user=invited_user,
+                event=None,
+                type=NotificationInboxType.INVITE,
+                title="New partner invite",
+                body=f"{request.user.display_name} connected with you on Couplendar.",
+                data={"invite_id": invite.id, "from_user_name": request.user.display_name},
+            )
+            NotificationInbox.objects.create(
+                user=request.user,
+                event=None,
+                type=NotificationInboxType.INVITE,
+                title="Invite sent",
+                body=f"Invite sent to {invited_user.display_name}.",
+                data={"invite_id": invite.id, "to_user_name": invited_user.display_name},
+            )
+
+        return Response(
+            {"status": "pending", "invite_id": invite.id},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class InviteAcceptView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, invite_id: int):
+        with transaction.atomic():
+            try:
+                invite = CoupleInvite.objects.select_for_update().get(id=invite_id, to_user=request.user)
+            except CoupleInvite.DoesNotExist:
+                return Response({"detail": "Invite not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            if invite.status != CoupleInviteStatus.PENDING:
+                return Response({"detail": "Invite is no longer pending."}, status=status.HTTP_409_CONFLICT)
+
+            requester_couple_exists = Couple.objects.filter(user1=invite.from_user).exists() or Couple.objects.filter(user2=invite.from_user).exists()
+            invited_couple_exists = Couple.objects.filter(user1=invite.to_user).exists() or Couple.objects.filter(user2=invite.to_user).exists()
+            if requester_couple_exists or invited_couple_exists:
+                invite.status = CoupleInviteStatus.DECLINED
+                invite.responded_at = timezone.now()
+                invite.save(update_fields=["status", "responded_at"])
+                return Response({"detail": "One of these users is already in a couple."}, status=status.HTTP_409_CONFLICT)
+
+            user_low, user_high = (
+                (invite.from_user, invite.to_user)
+                if invite.from_user.id < invite.to_user.id
+                else (invite.to_user, invite.from_user)
+            )
+            couple, _created = Couple.objects.get_or_create(user1=user_low, user2=user_high)
+
+            invite.status = CoupleInviteStatus.ACCEPTED
+            invite.responded_at = timezone.now()
+            invite.save(update_fields=["status", "responded_at"])
+
+            NotificationInbox.objects.filter(
+                user=invite.to_user,
+                type=NotificationInboxType.INVITE,
+                data__invite_id=invite.id,
+                read_at__isnull=True,
+            ).update(read_at=timezone.now())
+            NotificationInbox.objects.create(
+                user=invite.from_user,
+                event=None,
+                type=NotificationInboxType.INVITE,
+                title="Invite accepted",
+                body=f"{invite.to_user.display_name} accepted your partner invite.",
+                data={"invite_id": invite.id, "action": "accepted"},
+            )
 
         serializer = CoupleSerializer(couple)
-        return Response(
-            {"couple": serializer.data, "status": "created" if created else "existing"},
-            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
-        )
+        return Response({"status": "accepted", "couple": serializer.data}, status=status.HTTP_200_OK)
+
+
+class InviteDeclineView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, invite_id: int):
+        with transaction.atomic():
+            try:
+                invite = CoupleInvite.objects.select_for_update().get(id=invite_id, to_user=request.user)
+            except CoupleInvite.DoesNotExist:
+                return Response({"detail": "Invite not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            if invite.status != CoupleInviteStatus.PENDING:
+                return Response({"detail": "Invite is no longer pending."}, status=status.HTTP_409_CONFLICT)
+
+            invite.status = CoupleInviteStatus.DECLINED
+            invite.responded_at = timezone.now()
+            invite.save(update_fields=["status", "responded_at"])
+
+            NotificationInbox.objects.filter(
+                user=invite.to_user,
+                type=NotificationInboxType.INVITE,
+                data__invite_id=invite.id,
+                read_at__isnull=True,
+            ).update(read_at=timezone.now())
+            NotificationInbox.objects.create(
+                user=invite.from_user,
+                event=None,
+                type=NotificationInboxType.INVITE,
+                title="Invite declined",
+                body=f"{invite.to_user.display_name} declined your partner invite.",
+                data={"invite_id": invite.id, "action": "declined"},
+            )
+
+        return Response({"status": "declined"}, status=status.HTTP_200_OK)

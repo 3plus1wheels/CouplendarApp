@@ -75,6 +75,53 @@ class Couple(models.Model):
         return self.theme_name or f"Couple {self.user1_id}-{self.user2_id}"
 
 
+class CoupleInviteStatus(models.TextChoices):
+    PENDING = "pending", "Pending"
+    ACCEPTED = "accepted", "Accepted"
+    DECLINED = "declined", "Declined"
+
+
+class CoupleInvite(models.Model):
+    from_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="sent_couple_invites",
+    )
+    to_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="received_couple_invites",
+    )
+    status = models.CharField(max_length=20, choices=CoupleInviteStatus.choices, default=CoupleInviteStatus.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    responded_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=~Q(from_user=F("to_user")),
+                name="couple_invite_from_user_not_equal_to_user",
+            ),
+            models.UniqueConstraint(
+                fields=("from_user", "to_user"),
+                condition=Q(status=CoupleInviteStatus.PENDING),
+                name="unique_pending_couple_invite_direction",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=("to_user", "status")),
+            models.Index(fields=("from_user", "status")),
+        ]
+
+    def clean(self):
+        if self.from_user_id and self.to_user_id and self.from_user_id == self.to_user_id:
+            raise ValidationError({"to_user": "Invite receiver cannot be sender."})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+
 class Event(models.Model):
     name = models.CharField(max_length=120)
     owner = models.ForeignKey(

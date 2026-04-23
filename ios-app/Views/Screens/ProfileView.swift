@@ -7,6 +7,12 @@ struct ProfileView: View {
         case solo
     }
 
+    private enum InviteFeedback {
+        case success
+        case userNotFound
+        case error
+    }
+
     @EnvironmentObject private var authManager: AuthManager
 
     @State private var notificationsEnabled = true
@@ -15,6 +21,9 @@ struct ProfileView: View {
     @State private var showInviteComposer = false
     @State private var inviteTarget = ""
     @State private var didCopyInviteCode = false
+    @State private var isEnteringPartnerCode = false
+    @State private var inviteFeedback: InviteFeedback?
+    @FocusState private var inviteFieldFocused: Bool
 
     // Frontend-only mock stage switch. Keep `solo` until data wiring exists.
     private let stage: ProfileStage = .solo
@@ -143,38 +152,102 @@ struct ProfileView: View {
                 }
 
                 Spacer()
+
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
+                        isEnteringPartnerCode.toggle()
+                        didCopyInviteCode = false
+                    }
+                    inviteFeedback = nil
+                    if isEnteringPartnerCode {
+                        inviteFieldFocused = true
+                    } else {
+                        inviteFieldFocused = false
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: isEnteringPartnerCode ? "qrcode.viewfinder" : "keyboard")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(isEnteringPartnerCode ? "My Code" : "Enter Code")
+                            .font(AppTypography.caption.weight(.semibold))
+                    }
+                    .foregroundStyle(AppColors.blush)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(AppColors.blush.opacity(0.14))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
             }
 
-                VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    Text("YOUR INVITE CODE")
-                        .font(AppTypography.caption.weight(.bold))
-                        .tracking(1.0)
-                        .foregroundStyle(AppColors.secondaryText)
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                Text(isEnteringPartnerCode ? "ENTER PARTNER CODE" : "YOUR INVITE CODE")
+                    .font(AppTypography.caption.weight(.bold))
+                    .tracking(1.0)
+                    .foregroundStyle(AppColors.secondaryText)
 
-                HStack {
-                    Text(inviteCode ?? "NOT AVAILABLE")
-                        .font(.system(size: 33, weight: .bold, design: .rounded))
-                        .minimumScaleFactor(0.6)
-                        .lineLimit(1)
-                        .foregroundStyle(AppColors.primaryText)
+                if isEnteringPartnerCode {
+                    HStack(spacing: AppSpacing.sm) {
+                        TextField("Name, email, or invite code", text: $inviteTarget)
+                            .textInputAutocapitalization(.characters)
+                            .autocorrectionDisabled()
+                            .font(.system(size: 25, weight: .bold, design: .rounded))
+                            .foregroundStyle(AppColors.primaryText)
+                            .focused($inviteFieldFocused)
+                            .submitLabel(.done)
+                            .onSubmit {
+                                guard !authManager.isLoading else { return }
+                                submitInlineInvite()
+                            }
+                            .onChange(of: inviteTarget) { _ in
+                                inviteFeedback = nil
+                            }
 
-                    Spacer()
-
-                    Button {
-                        guard let code = inviteCode else { return }
-                        UIPasteboard.general.string = code
-                        didCopyInviteCode = true
-                    } label: {
-                        inviteIcon(systemName: "doc.on.doc")
+                        Button {
+                            submitInlineInvite()
+                        } label: {
+                            inviteIcon(systemName: authManager.isLoading ? "hourglass" : "arrow.right")
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(authManager.isLoading || inviteTarget.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .opacity(authManager.isLoading || inviteTarget.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.65 : 1)
                     }
-                    .buttonStyle(.plain)
+                } else {
+                    HStack {
+                        Text(inviteCode ?? "NOT AVAILABLE")
+                            .font(.system(size: 33, weight: .bold, design: .rounded))
+                            .minimumScaleFactor(0.6)
+                            .lineLimit(1)
+                            .foregroundStyle(AppColors.primaryText)
+
+                        Spacer()
+
+                        Button {
+                            guard let code = inviteCode else { return }
+                            UIPasteboard.general.string = code
+                            didCopyInviteCode = true
+                        } label: {
+                            inviteIcon(systemName: "doc.on.doc")
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
             }
             .padding(AppSpacing.md)
             .background(.white.opacity(0.72))
             .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
 
-            if didCopyInviteCode {
+            if let inviteFeedback {
+                HStack(spacing: 8) {
+                    Image(systemName: inviteFeedbackIcon(inviteFeedback))
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(inviteFeedbackText(inviteFeedback))
+                        .font(AppTypography.caption.weight(.semibold))
+                }
+                .foregroundStyle(inviteFeedbackColor(inviteFeedback))
+            }
+
+            if didCopyInviteCode && !isEnteringPartnerCode {
                 Text("Copied")
                     .font(AppTypography.caption.weight(.semibold))
                     .foregroundStyle(AppColors.blush)
@@ -374,6 +447,59 @@ struct ProfileView: View {
             .tracking(0.9)
             .foregroundStyle(AppColors.secondaryText.opacity(0.9))
             .padding(.leading, 2)
+    }
+
+    private func submitInlineInvite() {
+        let trimmed = inviteTarget.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        Task {
+            let sent = await authManager.sendInvite(inviteCode: trimmed)
+            if sent {
+                inviteTarget = ""
+                inviteFieldFocused = false
+                inviteFeedback = .success
+                return
+            }
+
+            let lowered = (authManager.errorMessage ?? "").lowercased()
+            if lowered.contains("not found") || lowered.contains("no user") || lowered.contains("does not exist") {
+                inviteFeedback = .userNotFound
+            } else {
+                inviteFeedback = .error
+            }
+        }
+    }
+
+    private func inviteFeedbackText(_ feedback: InviteFeedback) -> String {
+        switch feedback {
+        case .success:
+            return "Invite sent successfully"
+        case .userNotFound:
+            return "User not found"
+        case .error:
+            return "Something went wrong. Try again"
+        }
+    }
+
+    private func inviteFeedbackIcon(_ feedback: InviteFeedback) -> String {
+        switch feedback {
+        case .success:
+            return "checkmark.circle.fill"
+        case .userNotFound:
+            return "person.crop.circle.badge.exclamationmark"
+        case .error:
+            return "exclamationmark.triangle.fill"
+        }
+    }
+
+    private func inviteFeedbackColor(_ feedback: InviteFeedback) -> Color {
+        switch feedback {
+        case .success:
+            return AppColors.mint
+        case .userNotFound, .error:
+            return AppColors.blush
+        }
     }
 
     private var inviteComposerOverlay: some View {

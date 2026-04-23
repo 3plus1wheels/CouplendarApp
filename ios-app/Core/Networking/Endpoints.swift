@@ -13,6 +13,8 @@ enum Endpoint {
     case me
     case profile
     case inviteByCode
+    case acceptInvite(id: Int)
+    case declineInvite(id: Int)
     case notificationInbox
     case notificationReminders
     case notificationMarkRead(id: Int)
@@ -26,6 +28,8 @@ enum Endpoint {
         case .me: return "api/auth/me/"
         case .profile: return "api/profile/"
         case .inviteByCode: return "api/couples/invite/"
+        case .acceptInvite(let id): return "api/couples/invite/\(id)/accept/"
+        case .declineInvite(let id): return "api/couples/invite/\(id)/decline/"
         case .notificationInbox: return "api/notifications/inbox/"
         case .notificationReminders: return "api/notifications/reminders/"
         case .notificationMarkRead(let id): return "api/notifications/inbox/\(id)/read/"
