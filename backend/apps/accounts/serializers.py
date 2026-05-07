@@ -1,11 +1,14 @@
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 
+from apps.couples.models import Couple
 from .models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
     profile_photo = serializers.SerializerMethodField()
+    is_in_couple = serializers.SerializerMethodField()
+    partner_name = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -18,6 +21,8 @@ class UserSerializer(serializers.ModelSerializer):
             "last_name",
             "city",
             "profile_photo",
+            "is_in_couple",
+            "partner_name",
         )
 
     def get_profile_photo(self, obj):
@@ -27,6 +32,26 @@ class UserSerializer(serializers.ModelSerializer):
         if request:
             return request.build_absolute_uri(obj.profile_photo.url)
         return obj.profile_photo.url
+
+    def _get_couple(self, obj):
+        if hasattr(obj, "_cached_profile_couple"):
+            return obj._cached_profile_couple
+        couple = (
+            Couple.objects.filter(user1=obj).select_related("user2").first()
+            or Couple.objects.filter(user2=obj).select_related("user1").first()
+        )
+        obj._cached_profile_couple = couple
+        return couple
+
+    def get_is_in_couple(self, obj):
+        return self._get_couple(obj) is not None
+
+    def get_partner_name(self, obj):
+        couple = self._get_couple(obj)
+        if not couple:
+            return None
+        partner = couple.user2 if couple.user1_id == obj.id else couple.user1
+        return partner.display_name
 
 
 class RegisterSerializer(serializers.ModelSerializer):

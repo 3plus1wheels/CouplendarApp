@@ -1,7 +1,9 @@
 import SwiftUI
+import UIKit
 
 struct ExploreView: View {
     @EnvironmentObject private var authManager: AuthManager
+    @Environment(\.openURL) private var openURL
     @StateObject private var viewModel = ExploreViewModel()
     @State private var showProfile = false
 
@@ -9,52 +11,72 @@ struct ExploreView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.lg) {
-                    HStack {
-                        Text("Explore").font(AppTypography.largeTitle).foregroundStyle(AppColors.primaryText)
-                        Spacer()
-                        Button {
-                            showProfile = true
-                        } label: {
-                            Image(systemName: "person.crop.circle.fill")
-                                .font(.system(size: 30))
-                                .foregroundStyle(AppColors.blush)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("open_profile_button")
-                    }
-
-                    TextField("Search places", text: $viewModel.query)
-                        .textFieldStyle(.roundedBorder)
-
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: AppSpacing.xs) {
-                            ForEach(viewModel.tags, id: \.self) { tag in
-                                Button {
-                                    viewModel.selectedTag = tag
-                                } label: {
-                                    ChipView(
-                                        title: tag,
-                                        isActive: viewModel.selectedTag == tag,
-                                        variant: tag == "Dinner" ? .lavender : (tag == "Activity" ? .mint : .blush)
-                                    )
-                                }
-                                .buttonStyle(.plain)
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        HStack {
+                            Text("Explore")
+                                .font(AppTypography.largeTitle)
+                                .foregroundStyle(AppColors.primaryText)
+                            Spacer()
+                            Button {
+                                showProfile = true
+                            } label: {
+                                Image(systemName: "person.crop.circle.fill")
+                                    .font(.system(size: 30))
+                                    .foregroundStyle(AppColors.blush)
                             }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("open_profile_button")
+                        }
+
+                        HStack(spacing: AppSpacing.xs) {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 12))
+                                .foregroundStyle(AppColors.secondaryText)
+                            Text(viewModel.locationText)
+                                .font(AppTypography.caption)
+                                .foregroundStyle(AppColors.secondaryText)
+                        }
+
+                        if viewModel.isLocationDenied {
+                            Button("Enable Location") {
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    openURL(url)
+                                }
+                            }
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.blush)
                         }
                     }
 
-                    SectionHeader(title: "Trending", subtitle: "Picked for your shared vibe")
-
-                    ForEach(viewModel.filteredPlaces) { place in
-                        NavigationLink(value: place) {
-                            PlaceCard(place: place)
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    } else if let error = viewModel.errorMessage {
+                        Text(error)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.secondaryText)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else if viewModel.places.isEmpty {
+                        Text("No places yet")
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.secondaryText)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        ForEach(viewModel.places) { place in
+                            NavigationLink(value: place) {
+                                PlaceCard(place: place)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
                 .padding(AppSpacing.md)
             }
             .background(GlassBackgroundView())
+            .task {
+                viewModel.startLocation()
+                await viewModel.load(authManager: authManager)
+            }
             .navigationDestination(for: Place.self) { place in
                 PlaceDetailView(place: place)
             }

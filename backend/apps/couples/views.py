@@ -1,15 +1,15 @@
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-from rest_framework import status
+from rest_framework import status, generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
 from apps.notifications.models import NotificationInbox, NotificationInboxType
-from .models import Couple, CoupleInvite, CoupleInviteStatus
-from .serializers import CoupleSerializer
+from .models import Couple, CoupleInvite, CoupleInviteStatus, Event
+from .serializers import CoupleSerializer, EventSerializer
 
 
 def _normalize_invite_code(raw_code: str) -> str:
@@ -159,3 +159,22 @@ class InviteDeclineView(APIView):
             )
 
         return Response({"status": "declined"}, status=status.HTTP_200_OK)
+
+
+class EventListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = EventSerializer
+
+    def get_queryset(self):
+        return (
+            Event.objects
+            .filter(
+                Q(owner=self.request.user)
+                | Q(partner=self.request.user)
+                | Q(couple__user1=self.request.user)
+                | Q(couple__user2=self.request.user)
+            )
+            .select_related("owner", "partner", "couple")
+            .order_by("event_date", "event_time", "id")
+            .distinct()
+        )

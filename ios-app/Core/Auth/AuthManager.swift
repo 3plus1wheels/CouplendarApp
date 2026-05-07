@@ -250,6 +250,13 @@ final class AuthManager: ObservableObject {
         return response.updatedCount
     }
 
+    func fetchCoupleEvents() async throws -> [CoupleEventDTO] {
+        guard let accessToken = tokenStore.readAccessToken() else {
+            throw APIError.unauthorized
+        }
+        return try await apiClient.request(.coupleEvents, method: .get, accessToken: accessToken)
+    }
+
     func logout() {
         tokenStore.clear()
         currentUser = nil

@@ -25,8 +25,14 @@ struct ProfileView: View {
     @State private var inviteFeedback: InviteFeedback?
     @FocusState private var inviteFieldFocused: Bool
 
-    // Frontend-only mock stage switch. Keep `solo` until data wiring exists.
-    private let stage: ProfileStage = .solo
+    private var stage: ProfileStage {
+        (authManager.currentUser?.isInCouple ?? false) ? .paired : .solo
+    }
+
+    private var partnerName: String {
+        let trimmed = authManager.currentUser?.partnerName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? "Partner" : trimmed
+    }
 
     private var primaryName: String {
         let trimmed = authManager.currentUser?.displayName.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -303,7 +309,7 @@ struct ProfileView: View {
                     Text(primaryName)
                         .font(AppTypography.title)
                         .foregroundStyle(AppColors.primaryText)
-                    Text("& Partner")
+                    Text("& \(partnerName)")
                         .font(AppTypography.body.weight(.semibold))
                         .foregroundStyle(AppColors.secondaryText)
                     Text("♥ Together since Jan 15, 2023")

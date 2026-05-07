@@ -48,3 +48,22 @@ class EventSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"partner": "partner must be member of couple."})
 
         return attrs
+
+
+class EventCreateSerializer(EventSerializer):
+    owner = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = Event
+        fields = (
+            "id",
+            "name",
+            "owner",
+            "couple",
+            "place",
+            "event_date",
+            "event_time",
+            "repeat_mask",
+            "created_at",
+            "updated_at",
+        )
