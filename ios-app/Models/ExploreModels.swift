@@ -17,3 +17,21 @@ struct CoupleEventDTO: Decodable {
         case calendarName = "calendar_name"
     }
 }
+
+struct DiscoveryPlaceDTO: Decodable {
+    let id: Int
+    let name: String
+    let category: String
+    let rating: Double?
+    let photoURL: String?
+    let distanceKm: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case category
+        case rating
+        case photoURL = "photo_url"
+        case distanceKm = "distance_km"
+    }
+}

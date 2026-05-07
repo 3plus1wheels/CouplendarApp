@@ -20,6 +20,7 @@ enum Endpoint {
     case notificationMarkRead(id: Int)
     case notificationMarkAllRead
     case coupleEvents
+    case discoveryTrending
 
     var path: String {
         switch self {
@@ -36,6 +37,7 @@ enum Endpoint {
         case .notificationMarkRead(let id): return "api/notifications/inbox/\(id)/read/"
         case .notificationMarkAllRead: return "api/notifications/inbox/read-all/"
         case .coupleEvents: return "api/couples/events/"
+        case .discoveryTrending: return "api/discovery/trending/"
         }
     }
 }

@@ -33,6 +33,7 @@ ALLOWED_HOSTS = [h for h in os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").sp
 # Application definition
 
 INSTALLED_APPS = [
+    'django.contrib.gis',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -43,6 +44,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'apps.accounts',
     'apps.couples',
+    'apps.discovery',
     'apps.notifications',
 ]
 
@@ -89,6 +91,7 @@ DATABASES = {
         DATABASE_URL,
         conn_max_age=600,
         ssl_require=True,
+        engine="django.contrib.gis.db.backends.postgis",
     )
 }
 

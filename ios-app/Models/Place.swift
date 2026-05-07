@@ -7,4 +7,6 @@ struct Place: Identifiable, Hashable {
     let tags: [String]
     let distance: String
     let summary: String
+    let rating: Double?
+    let photoURL: URL?
 }

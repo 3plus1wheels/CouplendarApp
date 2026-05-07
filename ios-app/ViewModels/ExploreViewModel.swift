@@ -11,14 +11,22 @@ final class ExploreViewModel: ObservableObject {
     @Published var places: [Place] = []
 
     private let locationService: LocationService
+    private let useFixedLocation: Bool
 
-    init(locationService: LocationService? = nil) {
+    init(locationService: LocationService? = nil, useFixedLocation: Bool = true) {
         self.locationService = locationService ?? LocationService()
-        bindLocation()
+        self.useFixedLocation = useFixedLocation
+        if useFixedLocation {
+            locationText = "Calgary, AB"
+        } else {
+            bindLocation()
+        }
     }
 
     func startLocation() {
-        locationService.start()
+        if !useFixedLocation {
+            locationService.start()
+        }
     }
 
     func load(authManager: AuthManager) async {
@@ -27,28 +35,31 @@ final class ExploreViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            let events = try await authManager.fetchCoupleEvents()
-            places = events.map { event in
-                let placeName = event.place.trimmingCharacters(in: .whitespacesAndNewlines)
-                let category = event.calendarName.trimmingCharacters(in: .whitespacesAndNewlines)
-                let safeCategory = category.isEmpty ? "Event" : category.capitalized
-                let summary = [event.eventDate, event.eventTime]
-                    .filter { !$0.isEmpty }
-                    .joined(separator: " ")
-
+            let results = try await authManager.fetchDiscoveryTrending()
+            places = results.map { place in
+                let distance = formattedDistance(from: place.distanceKm)
                 return Place(
                     id: UUID(),
-                    name: event.name,
-                    category: safeCategory,
-                    tags: safeCategory == "Event" ? [] : [safeCategory],
-                    distance: placeName.isEmpty ? "—" : placeName,
-                    summary: summary
+                    name: place.name,
+                    category: place.category,
+                    tags: place.category.isEmpty ? [] : [place.category],
+                    distance: distance,
+                    summary: place.category,
+                    rating: place.rating,
+                    photoURL: URL(string: place.photoURL ?? "")
                 )
             }
         } catch {
             places = []
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func formattedDistance(from distanceKm: Double?) -> String {
+        guard let distanceKm else {
+            return "—"
+        }
+        return String(format: "%.1f km", distanceKm)
     }
 
     private func bindLocation() {

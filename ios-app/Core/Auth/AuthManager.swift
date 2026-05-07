@@ -257,6 +257,13 @@ final class AuthManager: ObservableObject {
         return try await apiClient.request(.coupleEvents, method: .get, accessToken: accessToken)
     }
 
+    func fetchDiscoveryTrending() async throws -> [DiscoveryPlaceDTO] {
+        guard let accessToken = tokenStore.readAccessToken() else {
+            throw APIError.unauthorized
+        }
+        return try await apiClient.request(.discoveryTrending, method: .get, accessToken: accessToken)
+    }
+
     func logout() {
         tokenStore.clear()
         currentUser = nil

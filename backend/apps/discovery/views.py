@@ -1,0 +1,19 @@
+from django.contrib.gis.db.models.functions import Distance
+from django.contrib.gis.geos import Point
+from rest_framework import generics
+
+from .models import TrendLocation
+from .serializers import TrendLocationSerializer
+
+CALGARY_CENTER = Point(-114.0719, 51.0447, srid=4326)
+
+
+class TrendingLocationsView(generics.ListAPIView):
+    serializer_class = TrendLocationSerializer
+
+    def get_queryset(self):
+        return (
+            TrendLocation.objects
+            .annotate(distance_m=Distance("location", CALGARY_CENTER))
+            .order_by("-trend_score", "name")
+        )
