@@ -5,6 +5,7 @@ from .models import TrendLocation
 
 class TrendLocationSerializer(serializers.ModelSerializer):
     distance_km = serializers.SerializerMethodField()
+    rating = serializers.FloatField(allow_null=True)
 
     class Meta:
         model = TrendLocation

@@ -17,7 +17,7 @@ class Command(BaseCommand):
     help = "Seed trending locations from Google Places Text Search."
 
     def add_arguments(self, parser):
-        parser.add_argument("--max-per-type", type=int, default=5)
+        parser.add_argument("--max-per-type", type=int, default=3)
         parser.add_argument("--city", type=str, default="Calgary, AB")
 
     def handle(self, *args, **options):
@@ -75,7 +75,7 @@ def upsert_location(item: dict, place_type: str, api_key: str) -> bool:
 
     photos = item.get("photos") or []
     photo_reference = photos[0].get("photo_reference") if photos else None
-    photo_url = build_photo_url(photo_reference, api_key) if photo_reference else ""
+    photo_url = ""
 
     rating = item.get("rating")
     review_count = item.get("user_ratings_total") or 0
@@ -86,8 +86,8 @@ def upsert_location(item: dict, place_type: str, api_key: str) -> bool:
     )
 
     defaults = {
-        "name": item.get("name", "")[:200],
-        "category": place_type.title(),
+        "name": (item.get("name", "") or "")[:200],
+        "category": (place_type.title() or "")[:120],
         "rating": Decimal(str(rating)) if rating is not None else None,
         "review_count": review_count,
         "photo_url": photo_url,

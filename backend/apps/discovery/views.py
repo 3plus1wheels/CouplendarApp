@@ -16,4 +16,4 @@ class TrendingLocationsView(generics.ListAPIView):
             TrendLocation.objects
             .annotate(distance_m=Distance("location", CALGARY_CENTER))
             .order_by("-trend_score", "name")
-        )
+        )[:6]

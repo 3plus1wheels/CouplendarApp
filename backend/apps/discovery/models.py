@@ -4,12 +4,12 @@ from django.contrib.gis.db import models
 
 
 class TrendLocation(models.Model):
-    place_id = models.CharField(max_length=120, unique=True)
+    place_id = models.CharField(max_length=255, unique=True)
     name = models.CharField(max_length=200)
     category = models.CharField(max_length=120, blank=True, default="")
     rating = models.DecimalField(max_digits=3, decimal_places=1, null=True, blank=True)
     review_count = models.PositiveIntegerField(default=0)
-    photo_url = models.URLField(blank=True, default="")
+    photo_url = models.URLField(blank=True, default="", max_length=500)
     location = models.PointField(geography=True, srid=4326, spatial_index=True)
     trend_score = models.FloatField(default=0.0)
     created_at = models.DateTimeField(auto_now_add=True)
