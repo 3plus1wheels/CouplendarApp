@@ -1,11 +1,17 @@
 asgiref==3.11.1
+celery==5.4.0
 dj-database-url==2.2.0
 Django==6.0.4
 django-cors-headers==4.9.0
 djangorestframework==3.17.1
 djangorestframework_simplejwt==5.5.1
+pandas==2.2.2
 pillow==12.2.0
+playwright==1.46.0
+playwright-stealth==1.0.6
 psycopg==3.3.3
 psycopg-binary==3.3.3
 PyJWT==2.12.1
+redis==5.0.4
+requests==2.32.3
 sqlparse==0.5.5

@@ -3,7 +3,7 @@ from django.contrib.gis.geos import Point
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from .management.commands.sync_place_enrichment import sanitize_reviews
+from .enrichment import sanitize_reviews
 from .models import TrendLocation
 from .video_providers import NoOfficialDataProvider
 

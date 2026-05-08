@@ -32,7 +32,14 @@ class TrendLocation(models.Model):
         return self.name
 
     @staticmethod
-    def compute_trend_score(rating: Decimal | None, review_count: int) -> float:
-        base_rating = float(rating) if rating is not None else 4.0
-        review_penalty = min(review_count, 500) / 50
-        return max(0.0, base_rating * 10 - review_penalty)
+    def compute_trend_score(
+        tiktok_engagement: float | int | None,
+        review_count: int,
+        rating: Decimal | None = None,
+    ) -> float:
+        engagement = float(tiktok_engagement or 0)
+        if engagement <= 0 and rating is not None:
+            base_rating = float(rating)
+            review_penalty = min(review_count, 500) / 50
+            return max(0.0, base_rating * 10 - review_penalty)
+        return engagement / max(1, review_count)
