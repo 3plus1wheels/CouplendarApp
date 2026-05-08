@@ -9,12 +9,23 @@
 
 ## Setup
 1. `cd backend`
-2. `python3 -m venv .venv`
+2. `python3.12 -m venv .venv`
 3. `source .venv/bin/activate`
 4. `pip install -r requirements.txt`
 5. Copy `.env.example` values into your environment.
 6. `python manage.py migrate`
 7. `python manage.py runserver`
+
+## Background Workers
+Redis is required for Celery.
+
+1. `redis-server`
+2. `python -m celery -A config --workdir . worker -l info`
+3. `python -m celery -A config --workdir . beat -l info`
+
+Notes:
+- `playwright-stealth` requires `pkg_resources`, so the backend pins `setuptools<81`.
+- Python 3.14 currently fails to build `greenlet` on macOS/arm64.
 
 ## API Endpoints
 - `POST /api/auth/register/`

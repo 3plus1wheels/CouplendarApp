@@ -1,16 +1,16 @@
 # Couplendar Implementation Status
 
 This document reflects the current auth-first split of the project:
-- `ios-app/` contains the SwiftUI frontend
-- `backend/` contains the Django + DRF + JWT backend
+- [ios-app](ios-app) contains the SwiftUI frontend
+- [backend](backend) contains the Django + DRF + JWT backend
 
 The app still contains the earlier mock-data tab screens, but the new work centers on authentication and profile sync first.
 
 ## Project Split
 
 ### Implemented
-- Frontend moved into [`/Users/vova_nguyen/Documents/ccc/ios-app`](/Users/vova_nguyen/Documents/ccc/ios-app)
-- Backend scaffold created in [`/Users/vova_nguyen/Documents/ccc/backend`](/Users/vova_nguyen/Documents/ccc/backend)
+- Frontend moved into [ios-app](ios-app)
+- Backend scaffold created in [backend](backend)
 - Frontend and backend are separated cleanly enough to evolve independently
 
 ### Not Implemented
@@ -21,10 +21,10 @@ The app still contains the earlier mock-data tab screens, but the new work cente
 ## App Shell
 
 ### Implemented
-- Native `@main` app entry point in [`/Users/vova_nguyen/Documents/ccc/ios-app/App/CouplendarApp.swift`](/Users/vova_nguyen/Documents/ccc/ios-app/App/CouplendarApp.swift)
-- Auth-gated root flow through [`/Users/vova_nguyen/Documents/ccc/ios-app/Views/Screens/Auth/AuthGateView.swift`](/Users/vova_nguyen/Documents/ccc/ios-app/Views/Screens/Auth/AuthGateView.swift)
+- Native `@main` app entry point in [ios-app/App/CouplendarApp.swift](ios-app/App/CouplendarApp.swift)
+- Auth-gated root flow through [ios-app/Views/Screens/Auth/AuthGateView.swift](ios-app/Views/Screens/Auth/AuthGateView.swift)
 - Session restore on launch through `AuthManager.restoreSession()`
-- Post-login shell still routes into the existing tab container in [`/Users/vova_nguyen/Documents/ccc/ios-app/App/RootTabView.swift`](/Users/vova_nguyen/Documents/ccc/ios-app/App/RootTabView.swift)
+- Post-login shell still routes into the existing tab container in [ios-app/App/RootTabView.swift](ios-app/App/RootTabView.swift)
 
 ### Not Implemented
 - A full navigation rewrite after auth
@@ -34,12 +34,12 @@ The app still contains the earlier mock-data tab screens, but the new work cente
 ## Authentication Flow
 
 ### Implemented
-- Login screen in [`/Users/vova_nguyen/Documents/ccc/ios-app/Views/Screens/Auth/LoginView.swift`](/Users/vova_nguyen/Documents/ccc/ios-app/Views/Screens/Auth/LoginView.swift)
-- Register screen in [`/Users/vova_nguyen/Documents/ccc/ios-app/Views/Screens/Auth/RegisterView.swift`](/Users/vova_nguyen/Documents/ccc/ios-app/Views/Screens/Auth/RegisterView.swift)
-- JWT token storage in [`/Users/vova_nguyen/Documents/ccc/ios-app/Core/Auth/TokenStore.swift`](/Users/vova_nguyen/Documents/ccc/ios-app/Core/Auth/TokenStore.swift)
-- Auth state management in [`/Users/vova_nguyen/Documents/ccc/ios-app/Core/Auth/AuthManager.swift`](/Users/vova_nguyen/Documents/ccc/ios-app/Core/Auth/AuthManager.swift)
-- API client in [`/Users/vova_nguyen/Documents/ccc/ios-app/Core/Networking/APIClient.swift`](/Users/vova_nguyen/Documents/ccc/ios-app/Core/Networking/APIClient.swift)
-- Auth response and user models in [`/Users/vova_nguyen/Documents/ccc/ios-app/Models/AuthResponse.swift`](/Users/vova_nguyen/Documents/ccc/ios-app/Models/AuthResponse.swift) and [`/Users/vova_nguyen/Documents/ccc/ios-app/Models/User.swift`](/Users/vova_nguyen/Documents/ccc/ios-app/Models/User.swift)
+- Login screen in [ios-app/Views/Screens/Auth/LoginView.swift](ios-app/Views/Screens/Auth/LoginView.swift)
+- Register screen in [ios-app/Views/Screens/Auth/RegisterView.swift](ios-app/Views/Screens/Auth/RegisterView.swift)
+- JWT token storage in [ios-app/Core/Auth/TokenStore.swift](ios-app/Core/Auth/TokenStore.swift)
+- Auth state management in [ios-app/Core/Auth/AuthManager.swift](ios-app/Core/Auth/AuthManager.swift)
+- API client in [ios-app/Core/Networking/APIClient.swift](ios-app/Core/Networking/APIClient.swift)
+- Auth response and user models in [ios-app/Models/AuthResponse.swift](ios-app/Models/AuthResponse.swift) and [ios-app/Models/User.swift](ios-app/Models/User.swift)
 - Login, register, me, and profile wiring on the Swift side
 
 ### Not Implemented
@@ -66,7 +66,7 @@ The app still contains the earlier mock-data tab screens, but the new work cente
 ## Home Screen
 
 ### Implemented
-- Legacy SwiftUI home tab still exists in [`/Users/vova_nguyen/Documents/ccc/ios-app/Views/Screens/HomeView.swift`](/Users/vova_nguyen/Documents/ccc/ios-app/Views/Screens/HomeView.swift)
+- Legacy SwiftUI home tab still exists in [ios-app/Views/Screens/HomeView.swift](ios-app/Views/Screens/HomeView.swift)
 - Mock-data-driven greeting, next-up card, upcoming list, suggestions, and reminders sections
 - Shared card and section components reused across the screen
 
@@ -79,7 +79,7 @@ The app still contains the earlier mock-data tab screens, but the new work cente
 ## Calendar Screen
 
 ### Implemented
-- Legacy mock calendar tab remains in [`/Users/vova_nguyen/Documents/ccc/ios-app/Views/Screens/CalendarView.swift`](/Users/vova_nguyen/Documents/ccc/ios-app/Views/Screens/CalendarView.swift)
+- Legacy mock calendar tab remains in [ios-app/Views/Screens/CalendarView.swift](ios-app/Views/Screens/CalendarView.swift)
 - Month heading, segmented mode picker, and mock event list
 - Floating add button shell
 
@@ -92,7 +92,7 @@ The app still contains the earlier mock-data tab screens, but the new work cente
 ## Explore Screen
 
 ### Implemented
-- Legacy explore screen still exists in [`/Users/vova_nguyen/Documents/ccc/ios-app/Views/Screens/ExploreView.swift`](/Users/vova_nguyen/Documents/ccc/ios-app/Views/Screens/ExploreView.swift)
+- Legacy explore screen still exists in [ios-app/Views/Screens/ExploreView.swift](ios-app/Views/Screens/ExploreView.swift)
 - Local search and filtering behavior
 - Simple place card browsing and navigation shell
 
@@ -105,7 +105,7 @@ The app still contains the earlier mock-data tab screens, but the new work cente
 ## Place Detail Screen
 
 ### Implemented
-- Legacy place detail screen still exists in [`/Users/vova_nguyen/Documents/ccc/ios-app/Views/Screens/PlaceDetailView.swift`](/Users/vova_nguyen/Documents/ccc/ios-app/Views/Screens/PlaceDetailView.swift)
+- Legacy place detail screen still exists in [ios-app/Views/Screens/PlaceDetailView.swift](ios-app/Views/Screens/PlaceDetailView.swift)
 - Basic hero, title, summary, and related content layout
 
 ### Not Implemented
@@ -117,7 +117,7 @@ The app still contains the earlier mock-data tab screens, but the new work cente
 ## Design System
 
 ### Implemented
-- Shared colors, spacing, typography, and shadows in `DesignSystem/`
+- Shared colors, spacing, typography, and shadows in DesignSystem/
 - Reusable SwiftUI building blocks such as cards, chips, section headers, and avatar stacks
 - Theming is centralized enough to support the current UI
 
@@ -129,7 +129,7 @@ The app still contains the earlier mock-data tab screens, but the new work cente
 ## Backend
 
 ### Implemented
-- Django project scaffold in [`/Users/vova_nguyen/Documents/ccc/backend`](/Users/vova_nguyen/Documents/ccc/backend)
+- Django project scaffold in [backend](backend)
 - Django REST Framework and SimpleJWT configured
 - Custom user model in `apps/accounts`
 - Auth endpoints:
@@ -147,6 +147,17 @@ The app still contains the earlier mock-data tab screens, but the new work cente
 - Production deployment configuration
 - Persistent media handling beyond the current profile fields
 - Full backend test coverage across all apps
+
+## Local Dev
+
+### Implemented
+- Backend virtual environment running on Python 3.12
+- Redis is used as the Celery broker/result backend
+- Celery worker and beat run successfully with `playwright-stealth` after pinning `setuptools<81`
+
+### Not Implemented
+- Automated local dev script to run Django, Redis, Celery worker, and Celery beat together
+- A fallback path if Python 3.14 is installed first (greenlet build fails on 3.14)
 
 ## Models and Data
 
