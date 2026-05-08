@@ -7,9 +7,18 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
-from apps.notifications.models import NotificationInbox, NotificationInboxType
+from apps.notifications.models import (
+    EventReminder,
+    NotificationChannel,
+    NotificationInbox,
+    NotificationInboxType,
+)
+from apps.notifications.services.notifications import schedule_notifications_for_event
 from .models import Couple, CoupleInvite, CoupleInviteStatus, Event
-from .serializers import CoupleSerializer, EventSerializer
+from .serializers import CoupleSerializer, EventCreateSerializer, EventSerializer
+
+
+DEFAULT_REMINDER_OFFSET_MINUTES = 60
 
 
 def _normalize_invite_code(raw_code: str) -> str:
@@ -161,9 +170,13 @@ class InviteDeclineView(APIView):
         return Response({"status": "declined"}, status=status.HTTP_200_OK)
 
 
-class EventListView(generics.ListAPIView):
+class EventListView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = EventSerializer
+
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return EventCreateSerializer
+        return EventSerializer
 
     def get_queryset(self):
         return (
@@ -178,3 +191,39 @@ class EventListView(generics.ListAPIView):
             .order_by("event_date", "event_time", "id")
             .distinct()
         )
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        couple = Couple.objects.filter(Q(user1=request.user) | Q(user2=request.user)).first()
+        if not couple:
+            return Response({"detail": "You must be in a couple to create shared events."}, status=status.HTTP_409_CONFLICT)
+
+        partner = couple.user2 if couple.user1_id == request.user.id else couple.user1
+
+        with transaction.atomic():
+            event = serializer.save(couple=couple, partner=partner)
+
+            for user in {request.user, partner}:
+                EventReminder.objects.get_or_create(
+                    event=event,
+                    user=user,
+                    offset_minutes=DEFAULT_REMINDER_OFFSET_MINUTES,
+                    channel=NotificationChannel.IN_APP,
+                )
+
+            schedule_notifications_for_event(event)
+
+            for user in {request.user, partner}:
+                NotificationInbox.objects.create(
+                    user=user,
+                    event=event,
+                    type=NotificationInboxType.EVENT_CREATED,
+                    title="Shared event created",
+                    body=f"{request.user.display_name} added {event.name} to your calendar.",
+                    data={"event_id": event.id},
+                )
+
+        output_serializer = EventSerializer(event)
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED)

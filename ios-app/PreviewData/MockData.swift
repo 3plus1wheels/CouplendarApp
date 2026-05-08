@@ -2,9 +2,9 @@ import Foundation
 
 enum MockData {
     static let plans: [Plan] = [
-        Plan(id: UUID(), title: "Sunset Picnic", date: .now.addingTimeInterval(86_400), location: "River Valley", vibe: "Romantic"),
-        Plan(id: UUID(), title: "Coffee Date", date: .now.addingTimeInterval(172_800), location: "Honey Bean", vibe: "Cozy"),
-        Plan(id: UUID(), title: "Dance Class", date: .now.addingTimeInterval(345_600), location: "Luna Studio", vibe: "Playful")
+        Plan(id: UUID(), remoteId: nil, title: "Sunset Picnic", date: .now.addingTimeInterval(86_400), location: "River Valley", vibe: "Romantic"),
+        Plan(id: UUID(), remoteId: nil, title: "Coffee Date", date: .now.addingTimeInterval(172_800), location: "Honey Bean", vibe: "Cozy"),
+        Plan(id: UUID(), remoteId: nil, title: "Dance Class", date: .now.addingTimeInterval(345_600), location: "Luna Studio", vibe: "Playful")
     ]
 
     static let suggestions: [Suggestion] = [
@@ -18,9 +18,9 @@ enum MockData {
     ]
 
     static let places: [Place] = [
-        Place(id: UUID(), name: "Bloom Garden Cafe", category: "Cafe", tags: ["Calm", "Brunch"], distance: "1.2 km", summary: "Floral brunch spot with cozy corners and soft jazz.", rating: 4.6, photoURL: nil),
-        Place(id: UUID(), name: "Starlight Rooftop", category: "Dinner", tags: ["Views", "Date Night"], distance: "3.8 km", summary: "Modern rooftop dining with skyline views.", rating: 4.4, photoURL: nil),
-        Place(id: UUID(), name: "Mint Pottery Studio", category: "Activity", tags: ["Hands-on", "Creative"], distance: "2.4 km", summary: "Wheel-throwing class perfect for a playful date.", rating: 4.7, photoURL: nil)
+        Place(id: UUID(), discoveryId: 1, name: "Bloom Garden Cafe", category: "Cafe", tags: ["Calm", "Brunch"], distance: "1.2 km", summary: "Floral brunch spot with cozy corners and soft jazz.", rating: 4.6, reviewCount: 102, photoURL: nil),
+        Place(id: UUID(), discoveryId: 2, name: "Starlight Rooftop", category: "Dinner", tags: ["Views", "Date Night"], distance: "3.8 km", summary: "Modern rooftop dining with skyline views.", rating: 4.4, reviewCount: 88, photoURL: nil),
+        Place(id: UUID(), discoveryId: 3, name: "Mint Pottery Studio", category: "Activity", tags: ["Hands-on", "Creative"], distance: "2.4 km", summary: "Wheel-throwing class perfect for a playful date.", rating: 4.7, reviewCount: 46, photoURL: nil)
     ]
 
     static let profile = UserProfile(

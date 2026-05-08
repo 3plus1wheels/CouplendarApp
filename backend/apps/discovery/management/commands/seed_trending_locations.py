@@ -63,8 +63,8 @@ def build_photo_url(photo_reference: str, api_key: str, max_width: int = 900) ->
 
 
 def upsert_location(item: dict, place_type: str, api_key: str) -> bool:
-    place_id = item.get("place_id")
-    if not place_id:
+    google_place_id = item.get("place_id")
+    if not google_place_id:
         return False
 
     geometry = item.get("geometry", {}).get("location", {})
@@ -75,7 +75,7 @@ def upsert_location(item: dict, place_type: str, api_key: str) -> bool:
 
     photos = item.get("photos") or []
     photo_reference = photos[0].get("photo_reference") if photos else None
-    photo_url = ""
+    photo_url = build_photo_url(photo_reference, api_key) if photo_reference else ""
 
     rating = item.get("rating")
     review_count = item.get("user_ratings_total") or 0
@@ -95,5 +95,5 @@ def upsert_location(item: dict, place_type: str, api_key: str) -> bool:
         "trend_score": trend_score,
     }
 
-    TrendLocation.objects.update_or_create(place_id=place_id, defaults=defaults)
+    TrendLocation.objects.update_or_create(google_place_id=google_place_id, defaults=defaults)
     return True

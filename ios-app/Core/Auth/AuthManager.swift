@@ -257,6 +257,35 @@ final class AuthManager: ObservableObject {
         return try await apiClient.request(.coupleEvents, method: .get, accessToken: accessToken)
     }
 
+    func createCoupleEvent(name: String, date: Date, time: Date, place: String, repeatMask: Int = 0) async throws -> CoupleEventDTO {
+        guard let accessToken = tokenStore.readAccessToken() else {
+            throw APIError.unauthorized
+        }
+
+        struct CreateEventRequest: Encodable {
+            let name: String
+            let place: String
+            let event_date: String
+            let event_time: String
+            let repeat_mask: Int
+        }
+
+        let request = CreateEventRequest(
+            name: name,
+            place: place,
+            event_date: Self.eventDateFormatter.string(from: date),
+            event_time: Self.eventTimeFormatter.string(from: time),
+            repeat_mask: repeatMask
+        )
+
+        return try await apiClient.request(
+            .createCoupleEvent,
+            method: .post,
+            body: request,
+            accessToken: accessToken
+        )
+    }
+
     func fetchDiscoveryTrending() async throws -> [DiscoveryPlaceDTO] {
         guard let accessToken = tokenStore.readAccessToken() else {
             throw APIError.unauthorized
@@ -264,9 +293,34 @@ final class AuthManager: ObservableObject {
         return try await apiClient.request(.discoveryTrending, method: .get, accessToken: accessToken)
     }
 
+    func fetchDiscoveryPlaceDetail(id: Int) async throws -> DiscoveryPlaceDetailDTO {
+        guard let accessToken = tokenStore.readAccessToken() else {
+            throw APIError.unauthorized
+        }
+        return try await apiClient.request(.discoveryTrendingDetail(id: id), method: .get, accessToken: accessToken)
+    }
+
     func logout() {
         tokenStore.clear()
         currentUser = nil
         errorMessage = nil
     }
+}
+
+private extension AuthManager {
+    static let eventDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = .current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+
+    static let eventTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        formatter.timeZone = .current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
 }

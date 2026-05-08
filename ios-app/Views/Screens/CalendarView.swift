@@ -64,7 +64,16 @@ struct CalendarView: View {
             .environmentObject(authManager)
         }
         .fullScreenCover(isPresented: $showAddEvent) {
-            AddEventView(isPresented: $showAddEvent)
+            AddEventView(
+                isPresented: $showAddEvent,
+                onEventCreated: {
+                    Task { await viewModel.loadEvents(authManager: authManager) }
+                }
+            )
+            .environmentObject(authManager)
+        }
+        .task {
+            await viewModel.loadEvents(authManager: authManager)
         }
     }
 
@@ -250,4 +259,7 @@ struct CalendarView: View {
     }
 }
 
-#Preview { CalendarView() }
+#Preview {
+    CalendarView()
+        .environmentObject(AuthManager())
+}

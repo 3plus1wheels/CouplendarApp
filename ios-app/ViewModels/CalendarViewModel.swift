@@ -36,7 +36,7 @@ final class CalendarViewModel: ObservableObject {
     private let calendar = Calendar.current
 
     @Published var mode: Mode = .month
-    @Published var plans: [Plan] = MockData.plans
+    @Published var plans: [Plan] = []
     @Published var displayedMonth: Date
     @Published var selectedDate: Date
 
@@ -128,4 +128,68 @@ final class CalendarViewModel: ObservableObject {
             selectedDate = displayedMonth
         }
     }
+
+    func loadEvents(authManager: AuthManager) async {
+        do {
+            let events = try await authManager.fetchCoupleEvents()
+            let mappedPlans = events.compactMap { mapEventToPlan($0) }
+            plans = mappedPlans.sorted { $0.date < $1.date }
+        } catch {
+            #if DEBUG
+            print("Failed to load events:", error.localizedDescription)
+            #endif
+        }
+    }
+
+    private func mapEventToPlan(_ event: CoupleEventDTO) -> Plan? {
+        guard let eventDate = Self.eventDateFormatter.date(from: event.eventDate) else {
+            return nil
+        }
+
+        let eventTime = Self.eventTimeFormatter.date(from: event.eventTime)
+            ?? Self.eventTimeShortFormatter.date(from: event.eventTime)
+            ?? eventDate
+
+        let combinedDate = calendar.date(
+            bySettingHour: calendar.component(.hour, from: eventTime),
+            minute: calendar.component(.minute, from: eventTime),
+            second: calendar.component(.second, from: eventTime),
+            of: eventDate
+        ) ?? eventDate
+
+        return Plan(
+            id: UUID(),
+            remoteId: event.id,
+            title: event.name,
+            date: combinedDate,
+            location: event.place,
+            vibe: "Shared"
+        )
+    }
+}
+
+private extension CalendarViewModel {
+    static let eventDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = .current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+
+    static let eventTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        formatter.timeZone = .current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+
+    static let eventTimeShortFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.timeZone = .current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
 }

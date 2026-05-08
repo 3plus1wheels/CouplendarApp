@@ -11,22 +11,14 @@ final class ExploreViewModel: ObservableObject {
     @Published var places: [Place] = []
 
     private let locationService: LocationService
-    private let useFixedLocation: Bool
 
-    init(locationService: LocationService? = nil, useFixedLocation: Bool = true) {
+    init(locationService: LocationService? = nil) {
         self.locationService = locationService ?? LocationService()
-        self.useFixedLocation = useFixedLocation
-        if useFixedLocation {
-            locationText = "Calgary, AB"
-        } else {
-            bindLocation()
-        }
+        bindLocation()
     }
 
     func startLocation() {
-        if !useFixedLocation {
-            locationService.start()
-        }
+        locationService.start()
     }
 
     func load(authManager: AuthManager) async {
@@ -40,12 +32,14 @@ final class ExploreViewModel: ObservableObject {
                 let distance = formattedDistance(from: place.distanceKm)
                 return Place(
                     id: UUID(),
+                    discoveryId: place.id,
                     name: place.name,
                     category: place.category,
                     tags: place.category.isEmpty ? [] : [place.category],
                     distance: distance,
                     summary: place.category,
                     rating: place.rating,
+                    reviewCount: place.reviewCount,
                     photoURL: URL(string: place.photoURL ?? "")
                 )
             }

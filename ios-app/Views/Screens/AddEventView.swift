@@ -2,6 +2,8 @@ import SwiftUI
 
 struct AddEventView: View {
     @Binding var isPresented: Bool
+    var onEventCreated: (() -> Void)? = nil
+    @EnvironmentObject private var authManager: AuthManager
     @State private var eventName = ""
     @State private var selectedCategory: EventCategory = .dinner
     @State private var displayedMonth: Date = Date()
@@ -11,6 +13,8 @@ struct AddEventView: View {
     @State private var location = ""
     @State private var notes = ""
     @State private var activePicker: TimeField?
+    @State private var isSaving = false
+    @State private var errorMessage: String?
 
     private let calendar = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible(), spacing: AppSpacing.xs), count: 7)
@@ -59,6 +63,12 @@ struct AddEventView: View {
                     Text("Add Event")
                         .font(AppTypography.largeTitle)
                         .foregroundStyle(AppColors.primaryText)
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(.red)
+                    }
 
                     PrimaryCard {
                         VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -187,10 +197,21 @@ struct AddEventView: View {
             .background(AppColors.neutralChip.opacity(0.35))
             .ignoresSafeArea(edges: .bottom)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
+                    if isSaving {
+                        ProgressView()
+                    }
+                }
+                ToolbarItem(placement: .topBarLeading) {
                     Button("Close") {
                         isPresented = false
                     }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Save") {
+                        Task { await saveEvent() }
+                    }
+                    .disabled(!canSave || isSaving)
                 }
             }
         }
@@ -229,6 +250,38 @@ struct AddEventView: View {
     private func shiftMonth(_ offset: Int) {
         guard let next = calendar.date(byAdding: .month, value: offset, to: displayedMonth) else { return }
         displayedMonth = next
+    }
+
+    private var canSave: Bool {
+        !eventName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func saveEvent() async {
+        guard canSave else { return }
+        isSaving = true
+        errorMessage = nil
+        defer { isSaving = false }
+
+        let timeComponents = calendar.dateComponents([.hour, .minute, .second], from: startTime)
+        let eventTime = calendar.date(
+            bySettingHour: timeComponents.hour ?? 0,
+            minute: timeComponents.minute ?? 0,
+            second: timeComponents.second ?? 0,
+            of: selectedDate
+        ) ?? selectedDate
+
+        do {
+            _ = try await authManager.createCoupleEvent(
+                name: eventName.trimmingCharacters(in: .whitespacesAndNewlines),
+                date: selectedDate,
+                time: eventTime,
+                place: location.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+            onEventCreated?()
+            isPresented = false
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     @ViewBuilder
@@ -358,4 +411,5 @@ private struct TimePickerSheet: View {
 
 #Preview {
     AddEventView(isPresented: .constant(true))
+        .environmentObject(AuthManager())
 }

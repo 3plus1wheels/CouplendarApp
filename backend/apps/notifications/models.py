@@ -24,6 +24,7 @@ class ScheduledNotificationStatus(models.TextChoices):
 class NotificationInboxType(models.TextChoices):
     EVENT_REMINDER = "event_reminder", "Event reminder"
     EVENT_UPDATED = "event_updated", "Event updated"
+    EVENT_CREATED = "event_created", "Event created"
     INVITE = "invite", "Invite"
 
 
