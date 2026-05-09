@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import TrendLocation
+from .models import SpotVideo, TrendLocation
 
 
 class TrendLocationReviewSerializer(serializers.Serializer):
@@ -10,11 +10,28 @@ class TrendLocationReviewSerializer(serializers.Serializer):
     text = serializers.CharField()
 
 
-class TrendLocationVideoSerializer(serializers.Serializer):
-    id = serializers.CharField()
-    title = serializers.CharField()
-    url = serializers.URLField()
-    thumbnail_url = serializers.URLField(allow_blank=True)
+class DiscoveryVideoSerializer(serializers.Serializer):
+    id = serializers.SerializerMethodField()
+    source = serializers.CharField(source="video.source")
+    source_url = serializers.URLField(source="video.source_url")
+    title = serializers.SerializerMethodField()
+    caption = serializers.CharField(source="video.caption")
+    url = serializers.URLField(source="video.source_url")
+    thumbnail_url = serializers.URLField(source="video.thumbnail_url", allow_blank=True)
+    creator_username = serializers.CharField(source="video.creator_username", allow_blank=True)
+    creator_display_name = serializers.CharField(source="video.creator_display_name", allow_blank=True)
+    likes_count = serializers.IntegerField(source="video.likes_count", allow_null=True)
+    comments_count = serializers.IntegerField(source="video.comments_count", allow_null=True)
+    shares_count = serializers.IntegerField(source="video.shares_count", allow_null=True)
+    views_count = serializers.IntegerField(source="video.views_count", allow_null=True)
+    posted_at = serializers.DateTimeField(source="video.posted_at", allow_null=True)
+
+    def get_id(self, obj: SpotVideo) -> str:
+        return obj.video.external_id or str(obj.video_id)
+
+    def get_title(self, obj: SpotVideo) -> str:
+        caption = (obj.video.caption or "").strip()
+        return caption or "TikTok video"
 
 
 class TrendLocationSerializer(serializers.ModelSerializer):
@@ -52,7 +69,7 @@ class TrendLocationSerializer(serializers.ModelSerializer):
 
 class TrendLocationDetailSerializer(TrendLocationSerializer):
     videos_available = serializers.SerializerMethodField()
-    videos = TrendLocationVideoSerializer(source="videos_payload", many=True, read_only=True)
+    videos = serializers.SerializerMethodField()
 
     class Meta(TrendLocationSerializer.Meta):
         fields = TrendLocationSerializer.Meta.fields + (
@@ -64,4 +81,20 @@ class TrendLocationDetailSerializer(TrendLocationSerializer):
         )
 
     def get_videos_available(self, obj: TrendLocation) -> bool:
-        return bool(obj.videos_payload)
+        return bool(self._spot_videos(obj))
+
+    def get_videos(self, obj: TrendLocation) -> list[dict]:
+        return DiscoveryVideoSerializer(self._spot_videos(obj), many=True).data
+
+    def _spot_videos(self, obj: TrendLocation) -> list[SpotVideo]:
+        prefetched = getattr(obj, "_prefetched_objects_cache", {})
+        links = prefetched.get("spot_videos")
+        if links is not None:
+            return list(links)
+        return list(obj.spot_videos.select_related("video").order_by("-video__views_count", "-video__last_scraped_at", "id"))
+
+
+class SpotVideoRefreshSerializer(serializers.Serializer):
+    spotId = serializers.IntegerField(source="spot.id")
+    status = serializers.CharField()
+    videos = DiscoveryVideoSerializer(source="links", many=True)

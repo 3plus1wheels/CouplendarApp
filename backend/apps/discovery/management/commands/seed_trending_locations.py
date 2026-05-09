@@ -2,7 +2,7 @@ import os
 
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.discovery.tasks import seed_trending_locations_task
+from apps.discovery.tasks import seed_trending_locations
 
 
 class Command(BaseCommand):
@@ -18,5 +18,5 @@ class Command(BaseCommand):
 
         max_per_type = options["max_per_type"]
         city = options["city"]
-        task = seed_trending_locations_task.delay(max_per_type=max_per_type, city=city)
-        self.stdout.write(self.style.SUCCESS(f"Queued seed task {task.id}"))
+        seeded = seed_trending_locations(max_per_type=max_per_type, city=city)
+        self.stdout.write(self.style.SUCCESS(f"Seeded {seeded} trending locations"))

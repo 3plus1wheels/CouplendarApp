@@ -1,17 +1,21 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 import os
+import threading
+from typing import Any
 
 import pandas as pd
-from celery import shared_task
 from django.conf import settings
 from django.contrib.gis.geos import Point
+from django.db import transaction
+from django.db import close_old_connections
 
 from .enrichment import apply_details
 from .google_places import GooglePlacesClient, LocationBias
-from .models import TrendLocation
+from .models import SpotVideo, TrendLocation, Video
 from .video_providers import TikTokSearchScraperProvider
 
 DEFAULT_SPOT_NAMES = [
@@ -21,9 +25,21 @@ DEFAULT_SPOT_NAMES = [
     "Ten Foot Henry",
 ]
 
+MIN_LINKED_VIDEOS = 3
+MAX_TOTAL_VIDEOS_PER_SPOT = 10
+STALE_VIDEO_WINDOW = timedelta(hours=24)
+_refresh_lock = threading.Lock()
+_inflight_refreshes: set[int] = set()
 
-@shared_task
-def seed_trending_locations_task(max_per_type: int = 3, city: str | None = None) -> int:
+
+@dataclass(frozen=True)
+class SpotVideoRefreshResult:
+    status: str
+    spot: TrendLocation
+    links: list[SpotVideo]
+
+
+def seed_trending_locations(max_per_type: int = 3, city: str | None = None) -> int:
     api_key = os.getenv("GOOGLE_PLACES_API_KEY")
     if not api_key:
         raise RuntimeError("GOOGLE_PLACES_API_KEY is required to seed places.")
@@ -40,59 +56,57 @@ def seed_trending_locations_task(max_per_type: int = 3, city: str | None = None)
     for place_type, query in queries:
         results = client.text_search(query=query, place_type=place_type)
         for item in results[:max_per_type]:
-            if _upsert_location(item, place_type, client):
+            location = _upsert_location(item, place_type, client)
+            if location is not None:
                 total += 1
 
     return total
 
 
-@shared_task
-def ingest_tiktok_spots_task(spot_names: list[str] | None = None) -> int:
+def ingest_tiktok_spots(spot_names: list[str] | None = None) -> int:
     api_key = os.getenv("GOOGLE_PLACES_API_KEY")
     if not api_key:
         raise RuntimeError("GOOGLE_PLACES_API_KEY is required to ingest TikTok spots.")
 
     spots = spot_names or DEFAULT_SPOT_NAMES
     client = GooglePlacesClient(api_key)
-    provider = TikTokSearchScraperProvider()
     bias = LocationBias(
         lat=settings.DISCOVERY_CITY_CENTER_LAT,
         lng=settings.DISCOVERY_CITY_CENTER_LNG,
     )
 
     ingested = 0
-    for spot in spots:
-        video_result = provider.fetch_for_place(place_name=spot, place_id="")
-        results = client.text_search(query=f"{spot} {settings.DISCOVERY_CITY_NAME}", location_bias=bias)
+    for spot_name in spots:
+        results = client.text_search(query=f"{spot_name} {settings.DISCOVERY_CITY_NAME}", location_bias=bias)
         if not results:
             continue
 
-        if _upsert_location(results[0], "TikTok", client, videos_payload=video_result.videos):
-            ingested += 1
+        location = _upsert_location(results[0], "TikTok", client)
+        if location is None:
+            continue
+
+        refresh_spot_videos(location=location, force=True)
+        ingested += 1
 
     return ingested
 
 
-@shared_task
-def sync_place_enrichment_task() -> int:
+def sync_place_enrichment() -> int:
     api_key = os.getenv("GOOGLE_PLACES_API_KEY")
-    provider = TikTokSearchScraperProvider()
     client = GooglePlacesClient(api_key) if api_key else None
 
     updates = []
     synced = 0
 
     for location in TrendLocation.objects.all().order_by("id"):
-        video_result = provider.fetch_for_place(place_name=location.name, place_id=location.google_place_id)
-        location.videos_payload = video_result.videos
+        refresh_result = refresh_spot_videos(location=location, force=True)
         location.tiktok_synced_at = datetime.now(UTC)
-        location.tiktok_sync_error = video_result.error or ""
+        location.tiktok_sync_error = "" if refresh_result.links else "No TikTok videos found."
 
         if not client:
             location.reviews_sync_error = "GOOGLE_PLACES_API_KEY is missing."
             location.save(
                 update_fields=[
-                    "videos_payload",
                     "tiktok_synced_at",
                     "tiktok_sync_error",
                     "reviews_sync_error",
@@ -121,13 +135,14 @@ def sync_place_enrichment_task() -> int:
                 "top_reviews",
                 "reviews_synced_at",
                 "reviews_sync_error",
-                "videos_payload",
                 "tiktok_synced_at",
                 "tiktok_sync_error",
             ]
         )
 
-        tiktok_engagement = _sum_tiktok_views(location.videos_payload)
+        tiktok_engagement = _sum_tiktok_views(
+            [link.video.views_count or 0 for link in refresh_result.links if link.video_id]
+        )
         updates.append(
             {
                 "id": location.id,
@@ -142,16 +157,54 @@ def sync_place_enrichment_task() -> int:
     return synced
 
 
-def _upsert_location(item: dict, place_type: str, client: GooglePlacesClient, videos_payload: list[dict] | None = None) -> bool:
+def refresh_spot_videos(*, location: TrendLocation, force: bool = False) -> SpotVideoRefreshResult:
+    current_links = _get_spot_video_links(location)
+    if not force and _has_fresh_videos(current_links):
+        return SpotVideoRefreshResult(status="ready", spot=location, links=current_links)
+
+    provider = TikTokSearchScraperProvider(max_videos=MAX_TOTAL_VIDEOS_PER_SPOT)
+    result = provider.search_spot_videos(
+        spot_name=location.name,
+        city=settings.DISCOVERY_CITY_NAME,
+        categories=_spot_categories(location),
+        limit=MAX_TOTAL_VIDEOS_PER_SPOT,
+    )
+
+    if result.error and not result.videos:
+        location.tiktok_synced_at = datetime.now(UTC)
+        location.tiktok_sync_error = result.error
+        location.save(update_fields=["tiktok_synced_at", "tiktok_sync_error"])
+        return SpotVideoRefreshResult(status="error", spot=location, links=current_links)
+
+    _replace_spot_video_links(location=location, videos=result.videos)
+    location.tiktok_synced_at = datetime.now(UTC)
+    location.tiktok_sync_error = result.error or ""
+    location.save(update_fields=["tiktok_synced_at", "tiktok_sync_error"])
+
+    refreshed_links = _get_spot_video_links(location)
+    return SpotVideoRefreshResult(status="ready", spot=location, links=refreshed_links)
+
+
+def queue_spot_video_refresh(*, location: TrendLocation, force: bool = False) -> SpotVideoRefreshResult:
+    current_links = _get_spot_video_links(location)
+    if not force and _has_fresh_videos(current_links):
+        return SpotVideoRefreshResult(status="ready", spot=location, links=current_links)
+
+    started = _start_refresh_thread(location.id, force=True)
+    status = "refreshing" if started else "refreshing"
+    return SpotVideoRefreshResult(status=status, spot=location, links=current_links)
+
+
+def _upsert_location(item: dict, place_type: str, client: GooglePlacesClient) -> TrendLocation | None:
     google_place_id = item.get("place_id")
     if not google_place_id:
-        return False
+        return None
 
     geometry = item.get("geometry", {}).get("location", {})
     lat = geometry.get("lat")
     lng = geometry.get("lng")
     if lat is None or lng is None:
-        return False
+        return None
 
     photos = item.get("photos") or []
     photo_reference = photos[0].get("photo_reference") if photos else None
@@ -159,10 +212,8 @@ def _upsert_location(item: dict, place_type: str, client: GooglePlacesClient, vi
 
     rating = item.get("rating")
     review_count = item.get("user_ratings_total") or 0
-    tiktok_engagement = _sum_tiktok_views(videos_payload or [])
-
     trend_score = TrendLocation.compute_trend_score(
-        tiktok_engagement,
+        0,
         review_count,
         Decimal(str(rating)) if rating is not None else None,
     )
@@ -172,19 +223,187 @@ def _upsert_location(item: dict, place_type: str, client: GooglePlacesClient, vi
         "category": (place_type.title() or "")[:120],
         "rating": Decimal(str(rating)) if rating is not None else None,
         "review_count": review_count,
-        "photo_url": photo_url,
+        "photo_url": _trim_url(photo_url, 500),
         "location": Point(lng, lat, srid=4326),
         "trend_score": trend_score,
     }
-    if videos_payload is not None:
-        defaults["videos_payload"] = videos_payload
+    location, _ = TrendLocation.objects.update_or_create(google_place_id=google_place_id, defaults=defaults)
+    return location
 
-    TrendLocation.objects.update_or_create(google_place_id=google_place_id, defaults=defaults)
+
+def _replace_spot_video_links(*, location: TrendLocation, videos: list[dict[str, Any]]) -> None:
+    now = datetime.now(UTC)
+    cleaned = _normalize_scraped_videos(videos)
+
+    with transaction.atomic():
+        active_video_ids: list[int] = []
+        for item in cleaned:
+            video, _ = Video.objects.update_or_create(
+                source=item["source"],
+                source_url=item["source_url"],
+                defaults={
+                    "external_id": item["external_id"],
+                    "caption": item["caption"],
+                    "creator_username": item["creator_username"],
+                    "creator_display_name": item["creator_display_name"],
+                    "hashtags": item["hashtags"],
+                    "thumbnail_url": item["thumbnail_url"],
+                    "likes_count": item["likes_count"],
+                    "comments_count": item["comments_count"],
+                    "shares_count": item["shares_count"],
+                    "views_count": item["views_count"],
+                    "posted_at": item["posted_at"],
+                    "raw_metadata": item["raw_metadata"],
+                    "last_scraped_at": now,
+                    "first_scraped_at": item["first_scraped_at"],
+                },
+            )
+            if video.first_scraped_at != item["first_scraped_at"]:
+                Video.objects.filter(pk=video.pk).update(first_scraped_at=min(video.first_scraped_at, item["first_scraped_at"]))
+                video.refresh_from_db(fields=["first_scraped_at"])
+
+            active_video_ids.append(video.id)
+            SpotVideo.objects.update_or_create(
+                spot=location,
+                video=video,
+                defaults={
+                    "relevance_score": item["relevance_score"],
+                    "match_reason": item["match_reason"],
+                    "discovered_from_type": item["discovered_from_type"],
+                    "discovered_from_value": item["discovered_from_value"],
+                },
+            )
+
+        SpotVideo.objects.filter(spot=location).exclude(video_id__in=active_video_ids).delete()
+
+
+def _normalize_scraped_videos(videos: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    now = datetime.now(UTC)
+    cleaned: list[dict[str, Any]] = []
+    seen_keys: set[tuple[str, str]] = set()
+
+    for raw in videos[:MAX_TOTAL_VIDEOS_PER_SPOT]:
+        source = str(raw.get("source") or "tiktok")[:32]
+        source_url = _trim_url(str(raw.get("source_url") or raw.get("url") or ""), 500)
+        if not source_url:
+            continue
+
+        dedupe_key = (source, source_url)
+        if dedupe_key in seen_keys:
+            continue
+        seen_keys.add(dedupe_key)
+
+        posted_at = _parse_datetime(raw.get("posted_at"))
+        discovered_from = raw.get("discovered_from") or {}
+        caption = str(raw.get("caption") or raw.get("description") or raw.get("title") or "").strip()
+        cleaned.append(
+            {
+                "source": source,
+                "source_url": source_url,
+                "external_id": str(raw.get("external_id") or raw.get("id") or "")[:120],
+                "caption": caption,
+                "creator_username": str(raw.get("creator_username") or "")[:120],
+                "creator_display_name": str(raw.get("creator_display_name") or "")[:200],
+                "hashtags": [str(tag)[:60] for tag in (raw.get("hashtags") or []) if str(tag).strip()],
+                "thumbnail_url": _trim_url(str(raw.get("thumbnail_url") or ""), 500),
+                "likes_count": _optional_int(raw.get("likes_count")),
+                "comments_count": _optional_int(raw.get("comments_count")),
+                "shares_count": _optional_int(raw.get("shares_count")),
+                "views_count": _optional_int(raw.get("views_count") or raw.get("views")),
+                "posted_at": posted_at,
+                "raw_metadata": raw.get("raw_metadata") or {},
+                "first_scraped_at": now,
+                "relevance_score": raw.get("relevance_score"),
+                "match_reason": str(raw.get("match_reason") or "query_match")[:255],
+                "discovered_from_type": str(discovered_from.get("type") or "search")[:32],
+                "discovered_from_value": str(discovered_from.get("value") or "")[:255],
+            }
+        )
+
+    return cleaned
+
+
+def _get_spot_video_links(location: TrendLocation) -> list[SpotVideo]:
+    return list(
+        SpotVideo.objects.filter(spot=location)
+        .select_related("video")
+        .order_by("-video__views_count", "-video__last_scraped_at", "id")
+    )
+
+
+def _start_refresh_thread(location_id: int, *, force: bool) -> bool:
+    with _refresh_lock:
+        if location_id in _inflight_refreshes:
+            return False
+        _inflight_refreshes.add(location_id)
+
+    thread = threading.Thread(
+        target=_run_refresh_job,
+        args=(location_id, force),
+        daemon=False,
+        name=f"spot-video-refresh-{location_id}",
+    )
+    thread.start()
     return True
 
 
-def _sum_tiktok_views(videos_payload: list[dict]) -> int:
-    return sum(int(video.get("views") or 0) for video in videos_payload)
+def _run_refresh_job(location_id: int, force: bool) -> None:
+    close_old_connections()
+    try:
+        location = TrendLocation.objects.get(pk=location_id)
+        refresh_spot_videos(location=location, force=force)
+    finally:
+        close_old_connections()
+        with _refresh_lock:
+            _inflight_refreshes.discard(location_id)
+
+
+def _has_fresh_videos(links: list[SpotVideo]) -> bool:
+    if len(links) < MIN_LINKED_VIDEOS:
+        return False
+
+    latest_scraped_at = max((link.video.last_scraped_at for link in links if link.video.last_scraped_at), default=None)
+    if latest_scraped_at is None:
+        return False
+    return latest_scraped_at >= datetime.now(UTC) - STALE_VIDEO_WINDOW
+
+
+def _spot_categories(location: TrendLocation) -> list[str]:
+    category = (location.category or "").strip().lower()
+    return [category] if category else []
+
+
+def _sum_tiktok_views(view_counts: list[int]) -> int:
+    return sum(int(value or 0) for value in view_counts)
+
+
+def _trim_url(value: str, max_length: int) -> str:
+    if not value:
+        return ""
+    return value[:max_length]
+
+
+def _parse_datetime(value: Any) -> datetime | None:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=UTC)
+    if isinstance(value, str):
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+        except ValueError:
+            return None
+    return None
+
+
+def _optional_int(value: Any) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _update_trend_scores(updates: list[dict]) -> None:

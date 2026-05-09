@@ -103,12 +103,12 @@ struct PlaceDetailView: View {
                 Text("TikTok Videos")
                     .font(AppTypography.cardTitle)
                 ForEach(Array(detail.videos.enumerated()), id: \.offset) { _, video in
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         Text(video.title)
                             .font(AppTypography.caption.weight(.semibold))
-                        Text(video.url)
-                            .font(.caption2)
-                            .foregroundStyle(AppColors.secondaryText)
+                        TikTokEmbedView(videoId: video.id)
+                            .frame(height: 420)
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
                 }
             }
@@ -121,6 +121,9 @@ struct PlaceDetailView: View {
         defer { isLoading = false }
         do {
             detail = try await authManager.fetchDiscoveryPlaceDetail(id: place.discoveryId)
+            Task {
+                _ = try? await authManager.refreshDiscoveryPlaceVideos(id: place.discoveryId)
+            }
         } catch {
             detail = nil
             errorMessage = error.localizedDescription

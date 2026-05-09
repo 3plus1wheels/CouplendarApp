@@ -60,16 +60,42 @@ struct DiscoveryReviewDTO: Decodable {
 
 struct DiscoveryVideoDTO: Decodable {
     let id: String
+    let source: String
+    let sourceURL: String
     let title: String
+    let caption: String
     let url: String
     let thumbnailURL: String
+    let creatorUsername: String
+    let creatorDisplayName: String
+    let likesCount: Int?
+    let commentsCount: Int?
+    let sharesCount: Int?
+    let viewsCount: Int?
+    let postedAt: String?
 
     enum CodingKeys: String, CodingKey {
         case id
+        case source
+        case sourceURL = "source_url"
         case title
+        case caption
         case url
         case thumbnailURL = "thumbnail_url"
+        case creatorUsername = "creator_username"
+        case creatorDisplayName = "creator_display_name"
+        case likesCount = "likes_count"
+        case commentsCount = "comments_count"
+        case sharesCount = "shares_count"
+        case viewsCount = "views_count"
+        case postedAt = "posted_at"
     }
+}
+
+struct DiscoveryVideoRefreshDTO: Decodable {
+    let spotId: Int
+    let status: String
+    let videos: [DiscoveryVideoDTO]
 }
 
 struct DiscoveryPlaceDetailDTO: Decodable {

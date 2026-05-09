@@ -16,12 +16,12 @@
 6. `python manage.py migrate`
 7. `python manage.py runserver`
 
-## Background Workers
-Redis is required for Celery.
+## Discovery Jobs
+Run discovery ingestion manually with management commands.
 
-1. `redis-server`
-2. `python -m celery -A config --workdir . worker -l info`
-3. `python -m celery -A config --workdir . beat -l info`
+1. `python manage.py seed_trending_locations --max-per-type 3 --city "Calgary, AB"`
+2. `python manage.py ingest_tiktok_spots`
+3. `python manage.py sync_place_enrichment`
 
 Notes:
 - `playwright-stealth` requires `pkg_resources`, so the backend pins `setuptools<81`.

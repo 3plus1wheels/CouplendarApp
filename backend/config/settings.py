@@ -1,5 +1,4 @@
 import os
-from celery.schedules import crontab
 from pathlib import Path
 from datetime import timedelta
 import dj_database_url
@@ -162,22 +161,3 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 DISCOVERY_CITY_CENTER_LAT = float(os.getenv("DISCOVERY_CITY_CENTER_LAT", "51.0447"))
 DISCOVERY_CITY_CENTER_LNG = float(os.getenv("DISCOVERY_CITY_CENTER_LNG", "-114.0719"))
 DISCOVERY_CITY_NAME = os.getenv("DISCOVERY_CITY_NAME", "Calgary, AB")
-
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_TIMEZONE = os.getenv("CELERY_TIMEZONE", "America/Edmonton")
-CELERY_ENABLE_UTC = True
-
-CELERY_BEAT_SCHEDULE = {
-    "discovery-ingest-tiktok": {
-        "task": "apps.discovery.tasks.ingest_tiktok_spots_task",
-        "schedule": crontab(hour="2,14", minute=0),
-    },
-    "discovery-sync-enrichment": {
-        "task": "apps.discovery.tasks.sync_place_enrichment_task",
-        "schedule": crontab(hour=3, minute=30),
-    },
-}

@@ -12,9 +12,9 @@ def apply_details(location: TrendLocation, details: dict) -> None:
     rating = details.get("rating")
     location.rating = Decimal(str(rating)) if rating is not None else location.rating
     location.review_count = details.get("user_ratings_total") or 0
-    location.website_url = details.get("website") or ""
+    location.website_url = _trim_url(details.get("website") or "", 500)
     location.phone_number = details.get("formatted_phone_number") or ""
-    location.google_maps_url = details.get("url") or ""
+    location.google_maps_url = _trim_url(details.get("url") or "", 500)
     location.top_reviews = sanitize_reviews(details.get("reviews") or [])
 
 
@@ -33,3 +33,9 @@ def sanitize_reviews(reviews: list[dict]) -> list[dict]:
             }
         )
     return cleaned
+
+
+def _trim_url(value: str, max_length: int) -> str:
+    if not value:
+        return ""
+    return value[:max_length]

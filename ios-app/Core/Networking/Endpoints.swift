@@ -23,6 +23,7 @@ enum Endpoint {
     case createCoupleEvent
     case discoveryTrending
     case discoveryTrendingDetail(id: Int)
+    case discoveryTrendingRefreshVideos(id: Int)
 
     var path: String {
         switch self {
@@ -42,6 +43,7 @@ enum Endpoint {
         case .createCoupleEvent: return "api/couples/events/"
         case .discoveryTrending: return "api/discovery/trending/"
         case .discoveryTrendingDetail(let id): return "api/discovery/trending/\(id)/"
+        case .discoveryTrendingRefreshVideos(let id): return "api/discovery/trending/\(id)/videos/refresh/"
         }
     }
 }

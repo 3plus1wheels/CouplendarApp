@@ -152,11 +152,11 @@ The app still contains the earlier mock-data tab screens, but the new work cente
 
 ### Implemented
 - Backend virtual environment running on Python 3.12
-- Redis is used as the Celery broker/result backend
-- Celery worker and beat run successfully with `playwright-stealth` after pinning `setuptools<81`
+- Discovery ingestion runs manually through Django management commands
+- `playwright-stealth` works after pinning `setuptools<81`
 
 ### Not Implemented
-- Automated local dev script to run Django, Redis, Celery worker, and Celery beat together
+- Automated local dev script to run Django and discovery ingestion commands together
 - A fallback path if Python 3.14 is installed first (greenlet build fails on 3.14)
 
 ## Models and Data
