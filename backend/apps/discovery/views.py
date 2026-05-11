@@ -30,6 +30,7 @@ class TrendingLocationDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         spot_videos = SpotVideo.objects.select_related("video").order_by(
+            "-relevance_score",
             "-video__views_count",
             "-video__last_scraped_at",
             "id",

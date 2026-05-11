@@ -2,7 +2,7 @@ import os
 
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.discovery.tasks import ingest_tiktok_spots
+from apps.discovery.tasks import ingest_featured_spots
 
 
 class Command(BaseCommand):
@@ -12,5 +12,5 @@ class Command(BaseCommand):
         if not os.getenv("GOOGLE_PLACES_API_KEY"):
             raise CommandError("GOOGLE_PLACES_API_KEY is required to ingest featured spots.")
 
-        ingested = ingest_tiktok_spots()
+        ingested = ingest_featured_spots()
         self.stdout.write(self.style.SUCCESS(f"Ingested {ingested} featured spots"))

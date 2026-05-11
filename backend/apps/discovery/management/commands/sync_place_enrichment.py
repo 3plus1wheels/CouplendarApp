@@ -4,7 +4,7 @@ from apps.discovery.tasks import sync_place_enrichment
 
 
 class Command(BaseCommand):
-    help = "Sync Google review enrichment and TikTok fallback metadata for trending places."
+    help = "Sync Google review enrichment and related video metadata for trending places."
 
     def handle(self, *args, **options):
         synced = sync_place_enrichment()

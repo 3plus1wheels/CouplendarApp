@@ -63,6 +63,7 @@ struct DiscoveryVideoDTO: Decodable {
     let source: String
     let sourceURL: String
     let title: String
+    let isShort: Bool
     let caption: String
     let url: String
     let thumbnailURL: String
@@ -79,6 +80,7 @@ struct DiscoveryVideoDTO: Decodable {
         case source
         case sourceURL = "source_url"
         case title
+        case isShort = "is_short"
         case caption
         case url
         case thumbnailURL = "thumbnail_url"
@@ -113,6 +115,8 @@ struct DiscoveryPlaceDetailDTO: Decodable {
     let reviewsLastUpdated: String?
     let topReviews: [DiscoveryReviewDTO]
     let videosAvailable: Bool
+    let videosLastUpdated: String?
+    let videoRefreshError: String
     let videos: [DiscoveryVideoDTO]
 
     enum CodingKeys: String, CodingKey {
@@ -130,6 +134,8 @@ struct DiscoveryPlaceDetailDTO: Decodable {
         case reviewsLastUpdated = "reviews_last_updated"
         case topReviews = "top_reviews"
         case videosAvailable = "videos_available"
+        case videosLastUpdated = "videos_last_updated"
+        case videoRefreshError = "video_refresh_error"
         case videos
     }
 }

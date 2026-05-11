@@ -15,6 +15,7 @@ class DiscoveryVideoSerializer(serializers.Serializer):
     source = serializers.CharField(source="video.source")
     source_url = serializers.URLField(source="video.source_url")
     title = serializers.SerializerMethodField()
+    is_short = serializers.SerializerMethodField()
     caption = serializers.CharField(source="video.caption")
     url = serializers.URLField(source="video.source_url")
     thumbnail_url = serializers.URLField(source="video.thumbnail_url", allow_blank=True)
@@ -31,7 +32,10 @@ class DiscoveryVideoSerializer(serializers.Serializer):
 
     def get_title(self, obj: SpotVideo) -> str:
         caption = (obj.video.caption or "").strip()
-        return caption or "TikTok video"
+        return caption or "YouTube video"
+
+    def get_is_short(self, obj: SpotVideo) -> bool:
+        return bool((obj.video.raw_metadata or {}).get("is_short"))
 
 
 class TrendLocationSerializer(serializers.ModelSerializer):
@@ -69,6 +73,8 @@ class TrendLocationSerializer(serializers.ModelSerializer):
 
 class TrendLocationDetailSerializer(TrendLocationSerializer):
     videos_available = serializers.SerializerMethodField()
+    videos_last_updated = serializers.DateTimeField(source="tiktok_synced_at", allow_null=True, read_only=True)
+    video_refresh_error = serializers.CharField(source="tiktok_sync_error", read_only=True)
     videos = serializers.SerializerMethodField()
 
     class Meta(TrendLocationSerializer.Meta):
@@ -77,6 +83,8 @@ class TrendLocationDetailSerializer(TrendLocationSerializer):
             "phone_number",
             "google_maps_url",
             "videos_available",
+            "videos_last_updated",
+            "video_refresh_error",
             "videos",
         )
 
@@ -91,7 +99,7 @@ class TrendLocationDetailSerializer(TrendLocationSerializer):
         links = prefetched.get("spot_videos")
         if links is not None:
             return list(links)
-        return list(obj.spot_videos.select_related("video").order_by("-video__views_count", "-video__last_scraped_at", "id"))
+        return list(obj.spot_videos.select_related("video").order_by("-relevance_score", "-video__views_count", "-video__last_scraped_at", "id"))
 
 
 class SpotVideoRefreshSerializer(serializers.Serializer):
