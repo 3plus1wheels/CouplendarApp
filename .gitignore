@@ -24,3 +24,4 @@ backend/**/*.pyc
 # Xcode/build caches
 DerivedData/
 .build/
+backend/.venv/lib/python3.12/site-packages/youtube_transcript_api/test/assets/youtube.html.static
