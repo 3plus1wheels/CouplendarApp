@@ -8,6 +8,8 @@ struct Place: Identifiable, Hashable {
     let tags: [String]
     let distance: String
     let summary: String
+    let suggestionScore: Double
+    let suggestionBadges: [String]
     let rating: Double?
     let reviewCount: Int
     let photoURL: URL?

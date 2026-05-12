@@ -14,4 +14,3 @@ PyJWT==2.12.1
 requests==2.33.1
 setuptools<81
 sqlparse==0.5.5
-youtube-transcript-api==1.2.3

@@ -300,13 +300,15 @@ final class AuthManager: ObservableObject {
         return try await apiClient.request(.discoveryTrendingDetail(id: id), method: .get, accessToken: accessToken)
     }
 
-    func refreshDiscoveryPlaceVideos(id: Int) async throws -> DiscoveryVideoRefreshDTO {
+    func sendPlannerMessage(_ message: String) async throws -> PlannerChatResponse {
         guard let accessToken = tokenStore.readAccessToken() else {
             throw APIError.unauthorized
         }
+
         return try await apiClient.request(
-            .discoveryTrendingRefreshVideos(id: id),
+            .plannerChat,
             method: .post,
+            body: PlannerChatRequest(message: message),
             accessToken: accessToken
         )
     }

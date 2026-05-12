@@ -22,10 +22,21 @@ struct DiscoveryPlaceDTO: Decodable {
     let id: Int
     let name: String
     let category: String
+    let primaryType: String
+    let primaryTypeDisplayName: String
+    let placeTypes: [String]
+    let businessStatus: String
+    let priceLevel: String
+    let openNow: Bool?
     let rating: Double?
     let reviewCount: Int
     let photoURL: String?
+    let photoURLs: [String]
     let distanceKm: Double?
+    let trendScore: Double
+    let suggestionScore: Double
+    let suggestionReason: String
+    let suggestionBadges: [String]
     let reviewsAvailable: Bool
     let reviewsLastUpdated: String?
     let topReviews: [DiscoveryReviewDTO]
@@ -34,10 +45,21 @@ struct DiscoveryPlaceDTO: Decodable {
         case id
         case name
         case category
+        case primaryType = "primary_type"
+        case primaryTypeDisplayName = "primary_type_display_name"
+        case placeTypes = "place_types"
+        case businessStatus = "business_status"
+        case priceLevel = "price_level"
+        case openNow = "open_now"
         case rating
         case reviewCount = "review_count"
         case photoURL = "photo_url"
+        case photoURLs = "photo_urls"
         case distanceKm = "distance_km"
+        case trendScore = "trend_score"
+        case suggestionScore = "suggestion_score"
+        case suggestionReason = "suggestion_reason"
+        case suggestionBadges = "suggestion_badges"
         case reviewsAvailable = "reviews_available"
         case reviewsLastUpdated = "reviews_last_updated"
         case topReviews = "top_reviews"
@@ -58,84 +80,70 @@ struct DiscoveryReviewDTO: Decodable {
     }
 }
 
-struct DiscoveryVideoDTO: Decodable {
-    let id: String
-    let source: String
-    let sourceURL: String
-    let title: String
-    let isShort: Bool
-    let caption: String
-    let url: String
-    let thumbnailURL: String
-    let creatorUsername: String
-    let creatorDisplayName: String
-    let likesCount: Int?
-    let commentsCount: Int?
-    let sharesCount: Int?
-    let viewsCount: Int?
-    let postedAt: String?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case source
-        case sourceURL = "source_url"
-        case title
-        case isShort = "is_short"
-        case caption
-        case url
-        case thumbnailURL = "thumbnail_url"
-        case creatorUsername = "creator_username"
-        case creatorDisplayName = "creator_display_name"
-        case likesCount = "likes_count"
-        case commentsCount = "comments_count"
-        case sharesCount = "shares_count"
-        case viewsCount = "views_count"
-        case postedAt = "posted_at"
-    }
-}
-
-struct DiscoveryVideoRefreshDTO: Decodable {
-    let spotId: Int
-    let status: String
-    let videos: [DiscoveryVideoDTO]
-}
-
 struct DiscoveryPlaceDetailDTO: Decodable {
     let id: Int
     let name: String
     let category: String
+    let primaryType: String
+    let primaryTypeDisplayName: String
+    let placeTypes: [String]
+    let businessStatus: String
+    let priceLevel: String
+    let openNow: Bool?
     let rating: Double?
     let reviewCount: Int
     let photoURL: String?
+    let photoURLs: [String]
     let distanceKm: Double?
+    let trendScore: Double
+    let suggestionScore: Double
+    let suggestionReason: String
+    let suggestionBadges: [String]
     let websiteURL: String
     let phoneNumber: String
     let googleMapsURL: String
+    let googleURI: String
+    let openingHours: [String]
+    let editorialSummary: String
+    let generativeSummary: String
+    let reviewSummary: String
+    let amenities: [String: Bool]
     let reviewsAvailable: Bool
     let reviewsLastUpdated: String?
     let topReviews: [DiscoveryReviewDTO]
-    let videosAvailable: Bool
-    let videosLastUpdated: String?
-    let videoRefreshError: String
-    let videos: [DiscoveryVideoDTO]
+    let reviewsSyncError: String
 
     enum CodingKeys: String, CodingKey {
         case id
         case name
         case category
+        case primaryType = "primary_type"
+        case primaryTypeDisplayName = "primary_type_display_name"
+        case placeTypes = "place_types"
+        case businessStatus = "business_status"
+        case priceLevel = "price_level"
+        case openNow = "open_now"
         case rating
         case reviewCount = "review_count"
         case photoURL = "photo_url"
+        case photoURLs = "photo_urls"
         case distanceKm = "distance_km"
+        case trendScore = "trend_score"
+        case suggestionScore = "suggestion_score"
+        case suggestionReason = "suggestion_reason"
+        case suggestionBadges = "suggestion_badges"
         case websiteURL = "website_url"
         case phoneNumber = "phone_number"
         case googleMapsURL = "google_maps_url"
+        case googleURI = "google_uri"
+        case openingHours = "opening_hours"
+        case editorialSummary = "editorial_summary"
+        case generativeSummary = "generative_summary"
+        case reviewSummary = "review_summary"
+        case amenities
         case reviewsAvailable = "reviews_available"
         case reviewsLastUpdated = "reviews_last_updated"
         case topReviews = "top_reviews"
-        case videosAvailable = "videos_available"
-        case videosLastUpdated = "videos_last_updated"
-        case videoRefreshError = "video_refresh_error"
-        case videos
+        case reviewsSyncError = "reviews_sync_error"
     }
 }

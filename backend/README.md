@@ -6,14 +6,14 @@
 - SimpleJWT
 - django-cors-headers
 - Neon PostgreSQL (via `DATABASE_URL` only)
-- YouTube Data API v3 (via `YOUTUBE_API_KEY`)
+- Google Places API New (via `GOOGLE_PLACES_API_KEY`)
 
 ## Setup
 1. `cd backend`
 2. `python3.12 -m venv .venv`
 3. `source .venv/bin/activate`
 4. `pip install -r requirements.txt`
-5. Copy `.env.example` values into your environment, including `DATABASE_URL` and `YOUTUBE_API_KEY`.
+5. Copy `.env.example` values into your environment, including `DATABASE_URL` and `GOOGLE_PLACES_API_KEY`.
 6. `python manage.py migrate`
 7. `python manage.py runserver`
 
@@ -23,13 +23,10 @@ Run discovery ingestion manually with management commands.
 1. `python manage.py seed_trending_locations --max-per-type 3 --city "Calgary, AB"`
 2. `python manage.py ingest_featured_spots`
 3. `python manage.py sync_place_enrichment`
-4. `python manage.py refresh_spot_videos --spot-id 1 --force`
-
-If a subprocess-backed spot refresh fails, inspect temp log file:
-- `<system temp dir>/discovery-refresh-<spot_id>.log`
 
 Notes:
-- YouTube Data API quota usage depends on search volume; cache freshness is used to reduce repeated lookups.
+- Discovery suggestions are based on Google Maps place signals: rating, review volume, summaries, type/category fit, amenities, open-now status, price level, photos, and Maps links.
+- Places API New uses field masks for Text Search and Place Details. Adding fields can change Google Maps Platform billing, so keep masks limited to fields rendered by the app.
 
 ## API Endpoints
 - `POST /api/auth/register/`

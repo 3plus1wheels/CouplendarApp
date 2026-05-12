@@ -10,26 +10,26 @@ struct PlaceDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: AppSpacing.lg) {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(LinearGradient(colors: [AppColors.lavender.opacity(0.4), AppColors.blush.opacity(0.35)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(height: 240)
+                heroImage
 
-                Text(place.name).font(AppTypography.largeTitle).foregroundStyle(AppColors.primaryText)
-                HStack(spacing: AppSpacing.xs) {
-                    ForEach(place.tags, id: \.self) { tag in
-                        ChipView(title: tag, isActive: false, variant: .neutral)
+                VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                    Text(place.name)
+                        .font(AppTypography.largeTitle)
+                        .foregroundStyle(AppColors.primaryText)
+
+                    HStack(spacing: AppSpacing.xs) {
+                        ForEach(place.tags, id: \.self) { tag in
+                            ChipView(title: tag, isActive: false, variant: .neutral)
+                        }
                     }
+
+                    Text(place.summary)
+                        .font(AppTypography.body)
+                        .foregroundStyle(AppColors.secondaryText)
                 }
 
-                Text(place.summary).font(AppTypography.body).foregroundStyle(AppColors.secondaryText)
-
-                PrimaryCard {
-                    HStack(spacing: AppSpacing.md) {
-                        Label("Maps", systemImage: "map")
-                        Label("Website", systemImage: "safari")
-                        Label("Call", systemImage: "phone")
-                    }
-                    .font(AppTypography.caption)
+                if let detail {
+                    actionCard(detail: detail)
                 }
 
                 if isLoading {
@@ -40,15 +40,13 @@ struct PlaceDetailView: View {
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.secondaryText)
                 } else if let detail {
+                    recommendationCard(detail: detail)
+                    placeFactsCard(detail: detail)
+                    photosCard(detail: detail)
                     reviewsCard(detail: detail)
-
-                    if detail.videosAvailable {
-                        videosCard(detail: detail)
-                    } else if !detail.videoRefreshError.isEmpty {
-                        videoErrorCard(detail: detail)
-                    }
+                    hoursCard(detail: detail)
                 } else {
-                    Text("No review details available")
+                    Text("No place details available")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.secondaryText)
                 }
@@ -62,14 +60,164 @@ struct PlaceDetailView: View {
     }
 
     @ViewBuilder
+    private var heroImage: some View {
+        AsyncImage(url: detailPhotoURLs.first ?? place.photoURL) { phase in
+            switch phase {
+            case .success(let image):
+                image
+                    .resizable()
+                    .scaledToFill()
+            case .failure, .empty:
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(LinearGradient(colors: [AppColors.lavender.opacity(0.4), AppColors.blush.opacity(0.35)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .overlay(
+                        Image(systemName: "map")
+                            .font(.system(size: 34, weight: .semibold))
+                            .foregroundStyle(AppColors.primaryText.opacity(0.65))
+                    )
+            @unknown default:
+                Color.clear
+            }
+        }
+        .frame(height: 240)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+    }
+
+    @ViewBuilder
+    private func actionCard(detail: DiscoveryPlaceDetailDTO) -> some View {
+        PrimaryCard {
+            HStack(spacing: AppSpacing.md) {
+                actionLink(title: "Maps", systemImage: "map", urlString: detail.googleMapsURL.isEmpty ? detail.googleURI : detail.googleMapsURL)
+                actionLink(title: "Website", systemImage: "safari", urlString: detail.websiteURL)
+                actionLink(title: "Call", systemImage: "phone", urlString: phoneURLString(detail.phoneNumber))
+            }
+            .font(AppTypography.caption)
+        }
+    }
+
+    @ViewBuilder
+    private func recommendationCard(detail: DiscoveryPlaceDetailDTO) -> some View {
+        PrimaryCard {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                HStack {
+                    Text("Why this place")
+                        .font(AppTypography.cardTitle)
+                    Spacer()
+                    Text("\(Int(detail.suggestionScore.rounded()))% match")
+                        .font(AppTypography.caption.weight(.semibold))
+                        .foregroundStyle(AppColors.blush)
+                }
+
+                Text(detail.suggestionReason.isEmpty ? "Suggested from Google Maps place signals." : detail.suggestionReason)
+                    .font(AppTypography.caption)
+                    .foregroundStyle(AppColors.secondaryText)
+
+                if !detail.suggestionBadges.isEmpty {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: 8)], alignment: .leading, spacing: 8) {
+                        ForEach(detail.suggestionBadges, id: \.self) { badge in
+                            Text(badge)
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(AppColors.primaryText)
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 5)
+                                .background(AppColors.surface.opacity(0.7), in: Capsule())
+                        }
+                    }
+                }
+
+                let summary = bestSummary(detail)
+                if !summary.isEmpty {
+                    Text(summary)
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.secondaryText)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func placeFactsCard(detail: DiscoveryPlaceDetailDTO) -> some View {
+        PrimaryCard {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                Text("Google Maps Signals")
+                    .font(AppTypography.cardTitle)
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: AppSpacing.sm) {
+                    factLabel(systemName: "star.fill", title: "Rating", value: ratingText(detail))
+                    factLabel(systemName: "text.bubble.fill", title: "Reviews", value: "\(detail.reviewCount)")
+                    factLabel(systemName: "clock.fill", title: "Status", value: openStatusText(detail.openNow))
+                    factLabel(systemName: "tag.fill", title: "Price", value: formattedPriceLevel(detail.priceLevel))
+                    factLabel(systemName: "mappin.and.ellipse", title: "Type", value: detail.primaryTypeDisplayName.isEmpty ? detail.category : detail.primaryTypeDisplayName)
+                    factLabel(systemName: "checkmark.seal.fill", title: "Business", value: formattedBusinessStatus(detail.businessStatus))
+                }
+
+                if !enabledAmenities(detail).isEmpty {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 8)], alignment: .leading, spacing: 8) {
+                        ForEach(enabledAmenities(detail), id: \.self) { amenity in
+                            Text(amenity)
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(AppColors.primaryText)
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 5)
+                                .background(AppColors.surface.opacity(0.7), in: Capsule())
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func photosCard(detail: DiscoveryPlaceDetailDTO) -> some View {
+        if !detail.photoURLs.isEmpty {
+            PrimaryCard {
+                VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                    Text("Photos")
+                        .font(AppTypography.cardTitle)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: AppSpacing.sm) {
+                            ForEach(detail.photoURLs, id: \.self) { urlString in
+                                AsyncImage(url: URL(string: urlString)) { phase in
+                                    if let image = phase.image {
+                                        image
+                                            .resizable()
+                                            .scaledToFill()
+                                    } else {
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .fill(AppColors.surface.opacity(0.5))
+                                            .overlay(
+                                                Image(systemName: "photo")
+                                                    .foregroundStyle(AppColors.secondaryText)
+                                            )
+                                    }
+                                }
+                                .frame(width: 150, height: 110)
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
     private func reviewsCard(detail: DiscoveryPlaceDetailDTO) -> some View {
         PrimaryCard {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
                 HStack(spacing: AppSpacing.xs) {
-                    Image(systemName: "star.fill").foregroundStyle(AppColors.blush)
-                    Text(detail.rating.map { String(format: "%.1f", $0) } ?? "—")
+                    Image(systemName: "star.fill")
+                        .foregroundStyle(AppColors.blush)
+                    Text(ratingText(detail))
                         .font(AppTypography.cardTitle)
                     Text("(\(detail.reviewCount) reviews)")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.secondaryText)
+                }
+
+                if !detail.reviewSummary.isEmpty {
+                    Text(detail.reviewSummary)
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.secondaryText)
                 }
@@ -99,100 +247,18 @@ struct PlaceDetailView: View {
     }
 
     @ViewBuilder
-    private func videosCard(detail: DiscoveryPlaceDetailDTO) -> some View {
-        PrimaryCard {
-            VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                Text("Relevant YouTube Shorts")
-                    .font(AppTypography.cardTitle)
-
-                if let updatedText = formattedVideosUpdatedAt(detail.videosLastUpdated) {
-                    Text("Updated \(updatedText)")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.secondaryText)
-                }
-
-                ForEach(Array(detail.videos.prefix(3).enumerated()), id: \.offset) { _, video in
-                    shortCard(video: video)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func shortCard(video: DiscoveryVideoDTO) -> some View {
-        if let url = URL(string: video.sourceURL) {
-            Link(destination: url) {
+    private func hoursCard(detail: DiscoveryPlaceDetailDTO) -> some View {
+        if !detail.openingHours.isEmpty {
+            PrimaryCard {
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                    ZStack(alignment: .topLeading) {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(AppColors.secondaryText.opacity(0.08))
-
-                        AsyncImage(url: URL(string: video.thumbnailURL)) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .scaledToFill()
-                            case .failure, .empty:
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(LinearGradient(colors: [AppColors.lavender.opacity(0.35), AppColors.blush.opacity(0.25)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                    .overlay(
-                                        Image(systemName: "play.rectangle.fill")
-                                            .font(.system(size: 36))
-                                            .foregroundStyle(AppColors.primaryText.opacity(0.7))
-                                    )
-                            @unknown default:
-                                Color.clear
-                            }
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-                        Text("Short")
-                            .font(AppTypography.caption.weight(.semibold))
-                            .foregroundStyle(AppColors.primaryText)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(.ultraThinMaterial, in: Capsule())
-                            .padding(12)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 280)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(video.title)
-                            .font(AppTypography.caption.weight(.semibold))
-                            .foregroundStyle(AppColors.primaryText)
-                            .multilineTextAlignment(.leading)
-
-                        if !displayChannelName(for: video).isEmpty {
-                            Text(displayChannelName(for: video))
-                                .font(AppTypography.caption)
-                                .foregroundStyle(AppColors.secondaryText)
-                                .multilineTextAlignment(.leading)
-                        }
-
-                        HStack(spacing: AppSpacing.md) {
-                            statLabel(systemName: "eye.fill", value: compactCount(video.viewsCount))
-                            statLabel(systemName: "heart.fill", value: compactCount(video.likesCount))
-                        }
+                    Text("Hours")
+                        .font(AppTypography.cardTitle)
+                    ForEach(detail.openingHours, id: \.self) { line in
+                        Text(line)
+                            .font(AppTypography.caption)
+                            .foregroundStyle(AppColors.secondaryText)
                     }
                 }
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    @ViewBuilder
-    private func videoErrorCard(detail: DiscoveryPlaceDetailDTO) -> some View {
-        PrimaryCard {
-            VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                Text("Video Refresh Error")
-                    .font(AppTypography.cardTitle)
-                Text(detail.videoRefreshError)
-                    .font(AppTypography.caption)
-                    .foregroundStyle(AppColors.secondaryText)
-                    .textSelection(.enabled)
             }
         }
     }
@@ -203,9 +269,6 @@ struct PlaceDetailView: View {
         defer { isLoading = false }
         do {
             detail = try await authManager.fetchDiscoveryPlaceDetail(id: place.discoveryId)
-            Task {
-                _ = try? await authManager.refreshDiscoveryPlaceVideos(id: place.discoveryId)
-            }
         } catch {
             detail = nil
             errorMessage = error.localizedDescription
@@ -213,62 +276,94 @@ struct PlaceDetailView: View {
     }
 
     @ViewBuilder
-    private func statLabel(systemName: String, value: String) -> some View {
-        HStack(spacing: 6) {
+    private func actionLink(title: String, systemImage: String, urlString: String) -> some View {
+        if let url = URL(string: urlString), !urlString.isEmpty {
+            Link(destination: url) {
+                Label(title, systemImage: systemImage)
+                    .frame(maxWidth: .infinity)
+            }
+        } else {
+            Label(title, systemImage: systemImage)
+                .frame(maxWidth: .infinity)
+                .foregroundStyle(AppColors.secondaryText.opacity(0.55))
+        }
+    }
+
+    @ViewBuilder
+    private func factLabel(systemName: String, title: String, value: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
             Image(systemName: systemName)
-            Text(value)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(AppColors.blush)
+                .frame(width: 18)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption2)
+                    .foregroundStyle(AppColors.secondaryText)
+                Text(value.isEmpty ? "Not listed" : value)
+                    .font(AppTypography.caption.weight(.semibold))
+                    .foregroundStyle(AppColors.primaryText)
+            }
         }
-        .font(AppTypography.caption)
-        .foregroundStyle(AppColors.secondaryText)
     }
 
-    private func compactCount(_ value: Int?) -> String {
-        guard let value else { return "—" }
-        if value >= 1_000_000 {
-            return String(format: "%.1fM", Double(value) / 1_000_000).replacingOccurrences(of: ".0", with: "")
-        }
-        if value >= 1_000 {
-            return String(format: "%.1fK", Double(value) / 1_000).replacingOccurrences(of: ".0", with: "")
-        }
-        return "\(value)"
+    private var detailPhotoURLs: [URL] {
+        guard let detail else { return [] }
+        return detail.photoURLs.compactMap(URL.init(string:))
     }
 
-    private func displayChannelName(for video: DiscoveryVideoDTO) -> String {
-        if !video.creatorDisplayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return video.creatorDisplayName
+    private func ratingText(_ detail: DiscoveryPlaceDetailDTO) -> String {
+        detail.rating.map { String(format: "%.1f", $0) } ?? "-"
+    }
+
+    private func openStatusText(_ openNow: Bool?) -> String {
+        switch openNow {
+        case true: return "Open now"
+        case false: return "Closed"
+        case nil: return "Not listed"
         }
-        return video.creatorUsername.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func formattedVideosUpdatedAt(_ value: String?) -> String? {
-        guard let value, let date = Self.parseISO8601(value) else { return nil }
-        return relativeDateFormatter.localizedString(for: date, relativeTo: Date())
+    private func formattedPriceLevel(_ value: String) -> String {
+        let cleaned = value
+            .replacingOccurrences(of: "PRICE_LEVEL_", with: "")
+            .replacingOccurrences(of: "_", with: " ")
+            .capitalized
+        return cleaned.isEmpty ? "Not listed" : cleaned
     }
 
-    private static func parseISO8601(_ value: String) -> Date? {
-        if let date = iso8601FractionalFormatter.date(from: value) {
-            return date
+    private func formattedBusinessStatus(_ value: String) -> String {
+        let cleaned = value.replacingOccurrences(of: "_", with: " ").capitalized
+        return cleaned.isEmpty ? "Not listed" : cleaned
+    }
+
+    private func bestSummary(_ detail: DiscoveryPlaceDetailDTO) -> String {
+        if !detail.generativeSummary.isEmpty { return detail.generativeSummary }
+        if !detail.editorialSummary.isEmpty { return detail.editorialSummary }
+        return detail.reviewSummary
+    }
+
+    private func enabledAmenities(_ detail: DiscoveryPlaceDetailDTO) -> [String] {
+        detail.amenities
+            .filter { $0.value }
+            .map { formattedAmenity($0.key) }
+            .sorted()
+    }
+
+    private func formattedAmenity(_ key: String) -> String {
+        key.reduce(into: "") { result, character in
+            if character.isUppercase {
+                result.append(" ")
+            }
+            result.append(character)
         }
-        return iso8601Formatter.date(from: value)
+        .capitalized
     }
 
-    private static let iso8601FractionalFormatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
-
-    private static let iso8601Formatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
-
-    private let relativeDateFormatter: RelativeDateTimeFormatter = {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
-        return formatter
-    }()
+    private func phoneURLString(_ phoneNumber: String) -> String {
+        let digits = phoneNumber.filter { $0.isNumber || $0 == "+" }
+        return digits.isEmpty ? "" : "tel://\(digits)"
+    }
 }
 
 #Preview {

@@ -35,9 +35,11 @@ final class ExploreViewModel: ObservableObject {
                     discoveryId: place.id,
                     name: place.name,
                     category: place.category,
-                    tags: place.category.isEmpty ? [] : [place.category],
+                    tags: tags(for: place),
                     distance: distance,
-                    summary: place.category,
+                    summary: place.suggestionReason.isEmpty ? place.category : place.suggestionReason,
+                    suggestionScore: place.suggestionScore,
+                    suggestionBadges: place.suggestionBadges,
                     rating: place.rating,
                     reviewCount: place.reviewCount,
                     photoURL: URL(string: place.photoURL ?? "")
@@ -54,6 +56,20 @@ final class ExploreViewModel: ObservableObject {
             return "—"
         }
         return String(format: "%.1f km", distanceKm)
+    }
+
+    private func tags(for place: DiscoveryPlaceDTO) -> [String] {
+        let candidates = place.suggestionBadges + [place.primaryTypeDisplayName, place.category]
+        var seen: Set<String> = []
+        return candidates.compactMap { value in
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            let key = trimmed.lowercased()
+            guard !trimmed.isEmpty, !seen.contains(key) else { return nil }
+            seen.insert(key)
+            return trimmed
+        }
+        .prefix(3)
+        .map { $0 }
     }
 
     private func bindLocation() {

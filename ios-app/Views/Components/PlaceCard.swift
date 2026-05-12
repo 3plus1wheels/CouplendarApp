@@ -14,6 +14,10 @@ struct PlaceCard: View {
         return String(format: "%.1f", rating)
     }
 
+    private var scoreText: String {
+        "\(Int(place.suggestionScore.rounded()))"
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: AppSpacing.md) {
             AsyncImage(url: place.photoURL) { phase in
@@ -55,11 +59,30 @@ struct PlaceCard: View {
                     Text(place.distance)
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.secondaryText)
+                    Text("•")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.secondaryText)
+                    Text("\(scoreText)% match")
+                        .font(AppTypography.caption)
+                        .foregroundStyle(AppColors.secondaryText)
                 }
 
                 Text(detailText)
                     .font(AppTypography.caption)
                     .foregroundStyle(AppColors.secondaryText)
+
+                if !place.suggestionBadges.isEmpty {
+                    HStack(spacing: 6) {
+                        ForEach(Array(place.suggestionBadges.prefix(3)), id: \.self) { badge in
+                            Text(badge)
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(AppColors.primaryText)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(AppColors.surface.opacity(0.7), in: Capsule())
+                        }
+                    }
+                }
             }
 
             Spacer(minLength: 0)

@@ -17,15 +17,11 @@ struct ExploreView: View {
                                 .font(AppTypography.largeTitle)
                                 .foregroundStyle(AppColors.primaryText)
                             Spacer()
-                            Button {
-                                showProfile = true
-                            } label: {
-                                Image(systemName: "person.crop.circle.fill")
-                                    .font(.system(size: 30))
-                                    .foregroundStyle(AppColors.blush)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("open_profile_button")
+                            headerCircleButton(
+                                symbol: "person.fill",
+                                action: { showProfile = true },
+                                accessibilityIdentifier: "open_profile_button"
+                            )
                         }
 
                         HStack(spacing: AppSpacing.xs) {
@@ -87,6 +83,23 @@ struct ExploreView: View {
                 .environmentObject(authManager)
             }
         }
+    }
+
+    private func headerCircleButton(
+        symbol: String,
+        action: @escaping () -> Void,
+        accessibilityIdentifier: String = ""
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(AppColors.blush)
+                .frame(width: 38, height: 38)
+                .background(.white.opacity(0.85))
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityIdentifier.isEmpty ? "header_\(symbol)_button" : accessibilityIdentifier)
     }
 }
 
