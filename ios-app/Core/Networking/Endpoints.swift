@@ -21,7 +21,7 @@ enum Endpoint {
     case notificationMarkAllRead
     case coupleEvents
     case createCoupleEvent
-    case discoveryTrending
+    case discoveryTrending(query: String? = nil)
     case discoveryTrendingDetail(id: Int)
     case plannerChat
 
@@ -44,6 +44,16 @@ enum Endpoint {
         case .discoveryTrending: return "api/discovery/trending/"
         case .discoveryTrendingDetail(let id): return "api/discovery/trending/\(id)/"
         case .plannerChat: return "api/chat/planner/"
+        }
+    }
+
+    var queryItems: [URLQueryItem] {
+        switch self {
+        case .discoveryTrending(let query):
+            let trimmed = query?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return trimmed.isEmpty ? [] : [URLQueryItem(name: "q", value: trimmed)]
+        default:
+            return []
         }
     }
 }

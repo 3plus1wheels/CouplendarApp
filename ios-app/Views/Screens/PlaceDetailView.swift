@@ -42,6 +42,7 @@ struct PlaceDetailView: View {
                 } else if let detail {
                     recommendationCard(detail: detail)
                     placeFactsCard(detail: detail)
+                    videosCard(detail: detail)
                     photosCard(detail: detail)
                     reviewsCard(detail: detail)
                     hoursCard(detail: detail)
@@ -165,6 +166,65 @@ struct PlaceDetailView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func videosCard(detail: DiscoveryPlaceDetailDTO) -> some View {
+        if !detail.videos.isEmpty {
+            PrimaryCard {
+                VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                    Text("Videos")
+                        .font(AppTypography.cardTitle)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: AppSpacing.sm) {
+                            ForEach(detail.videos) { video in
+                                if let url = URL(string: video.sourceURL) {
+                                    Link(destination: url) {
+                                        videoTile(video)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func videoTile(_ video: DiscoveryVideoDTO) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            AsyncImage(url: URL(string: video.thumbnailURL)) { phase in
+                if let image = phase.image {
+                    image
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(AppColors.surface.opacity(0.55))
+                        .overlay(
+                            Image(systemName: "play.rectangle.fill")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundStyle(AppColors.blush)
+                        )
+                }
+            }
+            .frame(width: 170, height: 110)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+
+            Text(video.caption.isEmpty ? formattedVideoSource(video.source) : video.caption)
+                .font(AppTypography.caption.weight(.semibold))
+                .foregroundStyle(AppColors.primaryText)
+                .lineLimit(2)
+
+            if let viewsCount = video.viewsCount {
+                Text("\(viewsCount.formatted()) views")
+                    .font(.caption2)
+                    .foregroundStyle(AppColors.secondaryText)
+            }
+        }
+        .frame(width: 170, alignment: .leading)
     }
 
     @ViewBuilder
@@ -363,6 +423,10 @@ struct PlaceDetailView: View {
     private func phoneURLString(_ phoneNumber: String) -> String {
         let digits = phoneNumber.filter { $0.isNumber || $0 == "+" }
         return digits.isEmpty ? "" : "tel://\(digits)"
+    }
+
+    private func formattedVideoSource(_ source: String) -> String {
+        source.replacingOccurrences(of: "_", with: " ").capitalized
     }
 }
 

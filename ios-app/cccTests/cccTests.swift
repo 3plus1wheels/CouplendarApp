@@ -18,19 +18,19 @@ struct cccTests {
     }
 
     @MainActor
-    @Test("ExploreViewModel filters by selected tag")
-    func exploreFilterByTag() {
+    @Test("ExploreViewModel tracks active search text")
+    func exploreSearchState() {
         let vm = ExploreViewModel()
-        vm.selectedTag = "Cafe"
-        #expect(vm.filteredPlaces.allSatisfy { $0.category == "Cafe" })
+        vm.searchText = "Rooftop"
+        #expect(vm.hasActiveSearch)
+        vm.clearSearch()
+        #expect(!vm.hasActiveSearch)
     }
 
-    @MainActor
-    @Test("ExploreViewModel filters by search query")
-    func exploreFilterByQuery() {
-        let vm = ExploreViewModel()
-        vm.query = "Rooftop"
-        #expect(vm.filteredPlaces.count == 1)
-        #expect(vm.filteredPlaces.first?.name == "Starlight Rooftop")
+    @Test("Discovery endpoint adds query item")
+    func discoveryEndpointQueryItem() {
+        #expect(Endpoint.discoveryTrending(query: "coffee").queryItems.first?.name == "q")
+        #expect(Endpoint.discoveryTrending(query: "coffee").queryItems.first?.value == "coffee")
+        #expect(Endpoint.discoveryTrending(query: "   ").queryItems.isEmpty)
     }
 }

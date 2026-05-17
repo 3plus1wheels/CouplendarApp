@@ -9,8 +9,19 @@ final class ExploreViewModel: ObservableObject {
     @Published var isLocationDenied = false
     @Published var locationError: String?
     @Published var places: [Place] = []
+    @Published var searchText = "" {
+        didSet {
+            scheduleSearch()
+        }
+    }
 
     private let locationService: LocationService
+    private weak var authManager: AuthManager?
+    private var searchTask: Task<Void, Never>?
+
+    var hasActiveSearch: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     init(locationService: LocationService? = nil) {
         self.locationService = locationService ?? LocationService()
@@ -22,12 +33,21 @@ final class ExploreViewModel: ObservableObject {
     }
 
     func load(authManager: AuthManager) async {
+        self.authManager = authManager
+        await fetchPlaces(authManager: authManager, query: searchText)
+    }
+
+    func clearSearch() {
+        searchText = ""
+    }
+
+    private func fetchPlaces(authManager: AuthManager, query: String) async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            let results = try await authManager.fetchDiscoveryTrending()
+            let results = try await authManager.fetchDiscoveryTrending(query: query)
             places = results.map { place in
                 let distance = formattedDistance(from: place.distanceKm)
                 return Place(
@@ -42,12 +62,24 @@ final class ExploreViewModel: ObservableObject {
                     suggestionBadges: place.suggestionBadges,
                     rating: place.rating,
                     reviewCount: place.reviewCount,
-                    photoURL: URL(string: place.photoURL ?? "")
+                    photoURL: URL(string: place.photoURL ?? ""),
+                    videosAvailable: place.videosAvailable
                 )
             }
         } catch {
             places = []
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func scheduleSearch() {
+        searchTask?.cancel()
+        guard let authManager else { return }
+        let query = searchText
+        searchTask = Task { [weak self, weak authManager] in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled, let self, let authManager else { return }
+            await self.fetchPlaces(authManager: authManager, query: query)
         }
     }
 
@@ -59,7 +91,8 @@ final class ExploreViewModel: ObservableObject {
     }
 
     private func tags(for place: DiscoveryPlaceDTO) -> [String] {
-        let candidates = place.suggestionBadges + [place.primaryTypeDisplayName, place.category]
+        let mediaBadges = place.videosAvailable ? ["Videos"] : []
+        let candidates = mediaBadges + place.suggestionBadges + [place.primaryTypeDisplayName, place.category]
         var seen: Set<String> = []
         return candidates.compactMap { value in
             let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)

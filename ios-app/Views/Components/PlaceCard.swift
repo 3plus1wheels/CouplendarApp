@@ -14,10 +14,6 @@ struct PlaceCard: View {
         return String(format: "%.1f", rating)
     }
 
-    private var scoreText: String {
-        "\(Int(place.suggestionScore.rounded()))"
-    }
-
     var body: some View {
         HStack(alignment: .top, spacing: AppSpacing.md) {
             AsyncImage(url: place.photoURL) { phase in
@@ -57,12 +53,6 @@ struct PlaceCard: View {
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.secondaryText)
                     Text(place.distance)
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.secondaryText)
-                    Text("•")
-                        .font(AppTypography.caption)
-                        .foregroundStyle(AppColors.secondaryText)
-                    Text("\(scoreText)% match")
                         .font(AppTypography.caption)
                         .foregroundStyle(AppColors.secondaryText)
                 }

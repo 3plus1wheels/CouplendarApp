@@ -40,6 +40,7 @@ struct DiscoveryPlaceDTO: Decodable {
     let reviewsAvailable: Bool
     let reviewsLastUpdated: String?
     let topReviews: [DiscoveryReviewDTO]
+    let videosAvailable: Bool
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -63,6 +64,7 @@ struct DiscoveryPlaceDTO: Decodable {
         case reviewsAvailable = "reviews_available"
         case reviewsLastUpdated = "reviews_last_updated"
         case topReviews = "top_reviews"
+        case videosAvailable = "videos_available"
     }
 }
 
@@ -112,6 +114,8 @@ struct DiscoveryPlaceDetailDTO: Decodable {
     let reviewsLastUpdated: String?
     let topReviews: [DiscoveryReviewDTO]
     let reviewsSyncError: String
+    let videosAvailable: Bool
+    let videos: [DiscoveryVideoDTO]
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -145,5 +149,35 @@ struct DiscoveryPlaceDetailDTO: Decodable {
         case reviewsLastUpdated = "reviews_last_updated"
         case topReviews = "top_reviews"
         case reviewsSyncError = "reviews_sync_error"
+        case videosAvailable = "videos_available"
+        case videos
+    }
+}
+
+struct DiscoveryVideoDTO: Decodable, Identifiable {
+    let id: Int
+    let source: String
+    let sourceURL: String
+    let externalId: String
+    let caption: String
+    let creatorUsername: String
+    let creatorDisplayName: String
+    let thumbnailURL: String
+    let viewsCount: Int?
+    let relevanceScore: Double?
+    let matchReason: String
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case source
+        case sourceURL = "source_url"
+        case externalId = "external_id"
+        case caption
+        case creatorUsername = "creator_username"
+        case creatorDisplayName = "creator_display_name"
+        case thumbnailURL = "thumbnail_url"
+        case viewsCount = "views_count"
+        case relevanceScore = "relevance_score"
+        case matchReason = "match_reason"
     }
 }

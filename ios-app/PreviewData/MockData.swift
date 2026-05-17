@@ -18,9 +18,9 @@ enum MockData {
     ]
 
     static let places: [Place] = [
-        Place(id: UUID(), discoveryId: 1, name: "Bloom Garden Cafe", category: "Cafe", tags: ["Open now", "Brunch"], distance: "1.2 km", summary: "Recommended for 4.6 stars, 102 Google reviews, open now, cafe.", suggestionScore: 91, suggestionBadges: ["Highly rated", "Open now", "Brunch"], rating: 4.6, reviewCount: 102, photoURL: nil),
-        Place(id: UUID(), discoveryId: 2, name: "Starlight Rooftop", category: "Dinner", tags: ["Popular", "Cocktails"], distance: "3.8 km", summary: "Recommended for skyline views and strong Google review signals.", suggestionScore: 87, suggestionBadges: ["Popular", "Cocktails"], rating: 4.4, reviewCount: 88, photoURL: nil),
-        Place(id: UUID(), discoveryId: 3, name: "Mint Pottery Studio", category: "Activity", tags: ["Highly rated", "Creative"], distance: "2.4 km", summary: "Recommended for 4.7 stars and hands-on date energy.", suggestionScore: 89, suggestionBadges: ["Highly rated", "Reservations"], rating: 4.7, reviewCount: 46, photoURL: nil)
+        Place(id: UUID(), discoveryId: 1, name: "Bloom Garden Cafe", category: "Cafe", tags: ["Open now", "Brunch"], distance: "1.2 km", summary: "Recommended for 4.6 stars, 102 Google reviews, open now, cafe.", suggestionScore: 91, suggestionBadges: ["Highly rated", "Open now", "Brunch"], rating: 4.6, reviewCount: 102, photoURL: nil, videosAvailable: true),
+        Place(id: UUID(), discoveryId: 2, name: "Starlight Rooftop", category: "Dinner", tags: ["Popular", "Cocktails"], distance: "3.8 km", summary: "Recommended for skyline views and strong Google review signals.", suggestionScore: 87, suggestionBadges: ["Popular", "Cocktails"], rating: 4.4, reviewCount: 88, photoURL: nil, videosAvailable: false),
+        Place(id: UUID(), discoveryId: 3, name: "Mint Pottery Studio", category: "Activity", tags: ["Highly rated", "Creative"], distance: "2.4 km", summary: "Recommended for 4.7 stars and hands-on date energy.", suggestionScore: 89, suggestionBadges: ["Highly rated", "Reservations"], rating: 4.7, reviewCount: 46, photoURL: nil, videosAvailable: false)
     ]
 
     static let profile = UserProfile(

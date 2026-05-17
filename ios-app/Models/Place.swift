@@ -13,4 +13,5 @@ struct Place: Identifiable, Hashable {
     let rating: Double?
     let reviewCount: Int
     let photoURL: URL?
+    let videosAvailable: Bool
 }

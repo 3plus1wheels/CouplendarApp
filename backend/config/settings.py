@@ -49,6 +49,17 @@ INSTALLED_APPS = [
     'apps.chat',
 ]
 
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
@@ -163,7 +174,23 @@ DISCOVERY_CITY_CENTER_LAT = float(os.getenv("DISCOVERY_CITY_CENTER_LAT", "51.044
 DISCOVERY_CITY_CENTER_LNG = float(os.getenv("DISCOVERY_CITY_CENTER_LNG", "-114.0719"))
 DISCOVERY_CITY_NAME = os.getenv("DISCOVERY_CITY_NAME", "Calgary, AB")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_EMBEDDING_MODEL = os.getenv("GEMINI_EMBEDDING_MODEL", "gemini-embedding-2")
+GEMINI_EMBEDDING_DIMENSIONS = int(os.getenv("GEMINI_EMBEDDING_DIMENSIONS", "768"))
 PLANNER_CHAT_COOLDOWN_SECONDS = int(os.getenv("PLANNER_CHAT_COOLDOWN_SECONDS", "6"))
 PLANNER_CHAT_DAILY_USER_LIMIT = int(os.getenv("PLANNER_CHAT_DAILY_USER_LIMIT", "40"))
 PLANNER_CHAT_DAILY_GLOBAL_LIMIT = int(os.getenv("PLANNER_CHAT_DAILY_GLOBAL_LIMIT", "850"))
 PLANNER_CHAT_RESPONSE_CACHE_SECONDS = int(os.getenv("PLANNER_CHAT_RESPONSE_CACHE_SECONDS", str(60 * 60 * 24 * 7)))
+DISCOVERY_CACHE_SECONDS = int(os.getenv("DISCOVERY_CACHE_SECONDS", "300"))
+DISCOVERY_DETAIL_CACHE_SECONDS = int(os.getenv("DISCOVERY_DETAIL_CACHE_SECONDS", "600"))
+GOOGLE_SPOT_REINGEST_INTERVAL_SECONDS = int(os.getenv("GOOGLE_SPOT_REINGEST_INTERVAL_SECONDS", "300"))
+
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+CELERY_BEAT_SCHEDULE = {
+    "reingest-next-google-spot": {
+        "task": "apps.discovery.tasks.reingest_next_google_spot",
+        "schedule": GOOGLE_SPOT_REINGEST_INTERVAL_SECONDS,
+    },
+}

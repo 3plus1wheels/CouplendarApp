@@ -17,16 +17,23 @@ final class APIClient {
     ) async throws -> Response {
         let normalizedPath = endpoint.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         let url = baseURL.appendingPathComponent(normalizedPath, isDirectory: true)
-        guard URLComponents(url: url, resolvingAgainstBaseURL: false) != nil else {
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            throw APIError.invalidURL
+        }
+        let queryItems = endpoint.queryItems
+        if !queryItems.isEmpty {
+            components.queryItems = queryItems
+        }
+        guard let requestURL = components.url else {
             throw APIError.invalidURL
         }
 
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: requestURL)
         request.httpMethod = method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         #if DEBUG
-        print("API request:", request.httpMethod ?? "", url.absoluteString)
+        print("API request:", request.httpMethod ?? "", requestURL.absoluteString)
         #endif
         if let accessToken {
             request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")

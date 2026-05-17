@@ -286,11 +286,11 @@ final class AuthManager: ObservableObject {
         )
     }
 
-    func fetchDiscoveryTrending() async throws -> [DiscoveryPlaceDTO] {
+    func fetchDiscoveryTrending(query: String? = nil) async throws -> [DiscoveryPlaceDTO] {
         guard let accessToken = tokenStore.readAccessToken() else {
             throw APIError.unauthorized
         }
-        return try await apiClient.request(.discoveryTrending, method: .get, accessToken: accessToken)
+        return try await apiClient.request(.discoveryTrending(query: query), method: .get, accessToken: accessToken)
     }
 
     func fetchDiscoveryPlaceDetail(id: Int) async throws -> DiscoveryPlaceDetailDTO {

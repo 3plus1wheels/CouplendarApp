@@ -42,6 +42,8 @@ struct ExploreView: View {
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.blush)
                         }
+
+                        searchField
                     }
 
                     if viewModel.isLoading {
@@ -53,7 +55,7 @@ struct ExploreView: View {
                             .foregroundStyle(AppColors.secondaryText)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     } else if viewModel.places.isEmpty {
-                        Text("No places yet")
+                        Text(viewModel.hasActiveSearch ? "No spots found" : "No places yet")
                             .font(AppTypography.caption)
                             .foregroundStyle(AppColors.secondaryText)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -83,6 +85,35 @@ struct ExploreView: View {
                 .environmentObject(authManager)
             }
         }
+    }
+
+    private var searchField: some View {
+        HStack(spacing: AppSpacing.xs) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(AppColors.secondaryText)
+
+            TextField("Search spots", text: $viewModel.searchText)
+                .font(AppTypography.body)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+
+            if viewModel.hasActiveSearch {
+                Button {
+                    viewModel.clearSearch()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(AppColors.secondaryText.opacity(0.75))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, AppSpacing.sm)
+        .padding(.vertical, 10)
+        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private func headerCircleButton(
